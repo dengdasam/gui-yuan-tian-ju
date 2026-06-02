@@ -1,0 +1,165 @@
+/* ============================================
+   归园田居 - 古风水墨主题
+   ============================================ */
+
+:root {
+  --bg-primary: #f5f0e8;
+  --bg-paper: #faf6ee;
+  --bg-panel: rgba(255, 252, 245, 0.95);
+  --bg-dark: #2c2416;
+
+  --text-primary: #3d3226;
+  --text-secondary: #6b5e4a;
+  --text-muted: #9b8d7a;
+  --text-light: #c4b9a6;
+  --text-inverse: #f5f0e8;
+
+  --ink: #2c2416;
+  --ink-light: #5a4e3c;
+  --gold: #c9a84c;
+  --gold-light: #e8d5a3;
+  --red: #a83a32;
+  --red-light: #e8b4b0;
+  --green: #4a7c59;
+  --green-light: #b8d4be;
+  --blue: #3a5a8c;
+  --blue-light: #b0c4de;
+  --spring: #e8f0e3;
+  --summer: #f0ede3;
+  --autumn: #f0e3d8;
+  --winter: #e3eaf0;
+
+  --border-color: #d4c9b4;
+  --border-light: #ebe3d1;
+
+  --font-calligraphy: 'Ma Shan Zheng', cursive;
+  --font-body: 'Noto Serif SC', serif;
+  --font-ui: 'Noto Serif SC', serif;
+
+  --radius: 8px;
+  --radius-lg: 16px;
+  --shadow: 0 4px 20px rgba(44, 36, 22, 0.08);
+  --shadow-lg: 0 8px 40px rgba(44, 36, 22, 0.12);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== 通用组件 ========== */
+
+.btn {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  padding: 10px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+}
+.btn:hover {
+  background: var(--ink);
+  color: var(--text-inverse);
+  border-color: var(--ink);
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--text-inverse);
+  border-color: var(--ink);
+}
+.btn-primary:hover {
+  background: var(--ink-light);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold), #b8933a);
+  color: #fff;
+  border-color: var(--gold);
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #b8933a, var(--gold));
+}
+
+.btn-small {
+  font-size: 13px;
+  padding: 6px 14px;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.card {
+  background: var(--bg-paper);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.card:hover {
+  box-shadow: var(--shadow);
+  border-color: var(--gold-light);
+  transform: translateY(-2px);
+}
+
+/* ========== 滚动条 ========== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ========== 动画 ========== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes textReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.fade-in { animation: fadeIn 0.5s ease forwards; }
+.slide-up { animation: slideUp 0.6s ease forwards; }
+.text-reveal { animation: textReveal 1.5s ease forwards; }
+
+/* ========== 布局工具 ========== */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.gap-sm { gap: 8px; }
+.gap-md { gap: 16px; }
+.gap-lg { gap: 24px; }
+.flex-1 { flex: 1; }
