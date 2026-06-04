@@ -159,6 +159,9 @@ export const useGameStore = defineStore('game', () => {
     // 季节事件检查
     checkSeasonalEvent()
 
+    // 章节过渡触发
+    checkPendingChapterStart()
+
     totalDays.value += 1
   }
 
@@ -175,7 +178,9 @@ export const useGameStore = defineStore('game', () => {
       } else {
         m.trend = 'stable'
       }
-      m.demand = m.price > m.price * 1.1 ? 'high' : m.price < m.price * 0.9 ? 'low' : 'normal'
+      const crop = crops.find(c => c.id === m.cropId)
+      const basePrice = crop ? crop.baseSellPrice : m.price
+      m.demand = m.price > basePrice * 1.2 ? 'high' : m.price < basePrice * 0.8 ? 'low' : 'normal'
     })
   }
 
@@ -254,6 +259,31 @@ export const useGameStore = defineStore('game', () => {
     // 检查是否触发运货事件
     checkShipmentTrigger(crop.id, crop.yield)
 
+    return true
+  }
+
+  // ---- 开垦新田 ----
+  function expandLand() {
+    const MAX_LANDS = 6
+    const costs = [0, 0, 0, 150, 250, 400] // 第4/5/6块田的价格
+    const currentCount = farmLands.value.length
+    if (currentCount >= MAX_LANDS) return false
+
+    const cost = costs[currentCount] || 0
+    if (player.value.gold < cost) return false
+
+    player.value.gold -= cost
+    const newId = currentCount
+    farmLands.value.push({
+      id: newId,
+      crop: null,
+      plantedDay: 0,
+      watered: false,
+      fertilized: false,
+      quality: 50,
+      ready: false
+    })
+    addLog(`开垦了第${newId + 1}块田地！花费${cost}文铜钱。`, 'action')
     return true
   }
 
@@ -378,6 +408,47 @@ export const useGameStore = defineStore('game', () => {
     })
   }
 
+  // ---- 章节过渡检测 ----
+  const chapterTransitions: Record<string, string> = {
+    'ch1_end_chapter': 'chapter2',
+    'ch2_end_chapter': 'chapter3',
+    'ch3_end_chapter': 'epilogue',
+    'epilogue_credits': 'epilogue'
+  }
+
+  const chapterStartNodes: Record<string, string> = {
+    'chapter2': 'ch2_intro',
+    'chapter3': 'ch3_intro',
+    'epilogue': 'epilogue_intro'
+  }
+
+  function checkChapterTransition() {
+    const nextChapter = chapterTransitions[currentNode.value]
+    if (nextChapter) {
+      currentChapter.value = nextChapter
+      const startNode = chapterStartNodes[nextChapter]
+      if (startNode) {
+        // 延迟到下一个游戏日触发新章节
+        flags.value[`${nextChapter}_pending`] = true
+      }
+    }
+  }
+
+  function checkPendingChapterStart() {
+    for (const chapterId of ['chapter2', 'chapter3', 'epilogue']) {
+      const flagKey = `${chapterId}_pending`
+      if (flags.value[flagKey]) {
+        const startNode = chapterStartNodes[chapterId]
+        if (startNode && currentNode.value !== startNode) {
+          flags.value[flagKey] = false
+          addLog(`【${chapterId === 'epilogue' ? '尾章' : chapterId === 'chapter3' ? '第三章' : '第二章'}】开启！`, 'story')
+          goToNode(startNode)
+        }
+        break
+      }
+    }
+  }
+
   // ---- 故事推进 ----
   function goToNode(nodeId: string) {
     if (!storyNodes[nodeId]) return
@@ -387,7 +458,28 @@ export const useGameStore = defineStore('game', () => {
 
     // 检查条件
     if (node.condition) {
-      // 简单条件检查
+      try {
+        const conditionMet = node.condition({
+          player: player.value,
+          date: date.value,
+          flags: flags.value,
+          npcs: npcs.value,
+          farmLands: farmLands.value,
+          currentNode: currentNode.value,
+          totalDays: totalDays.value,
+          market: market.value,
+          competitors: competitors.value
+        })
+        if (!conditionMet) {
+          // 条件不满足，跳转到默认下一个节点
+          if (node.next) {
+            goToNode(node.next)
+          }
+          return
+        }
+      } catch (e) {
+        console.warn(`故事节点 ${nodeId} 条件检查失败:`, e)
+      }
     }
 
     // 触发进入效果
@@ -404,6 +496,9 @@ export const useGameStore = defineStore('game', () => {
         })
       })
     }
+
+    // 检测章节过渡
+    checkChapterTransition()
 
     // 如果没有对话和选择，自动推进
     if (!node.dialogue && !node.choices && node.next) {
@@ -499,8 +594,8 @@ export const useGameStore = defineStore('game', () => {
     chamberVotes.value.push(newVote)
     addLog(`【商会】提案"${vote.title}"已发起，等待投票。`, 'business')
 
-    // 模拟AI投票
-    setTimeout(() => resolveChamberVote(newVote.id), 100)
+    // AI投票将在下一次时间推进时自动处理
+    newVote.resolveDay = totalDays.value + 1
   }
 
   function castVote(voteId: string, competitorId: string, vote: 'yes' | 'no') {
@@ -521,23 +616,26 @@ export const useGameStore = defineStore('game', () => {
 
   function resolveChamberVote(voteId: string) {
     const cv = chamberVotes.value.find(v => v.id === voteId)
-    if (!cv) return
+    if (!cv || cv.status !== 'voting') return
 
-    cv.status = 'voting'
+    resolveChamberVoteInternal(cv)
+  }
+
+  function resolveChamberVoteInternal(cv: ChamberVote) {
 
     // 你方自动投赞成
-    castVote(voteId, 'zhangsifang', 'yes')
+    castVote(cv.id, 'zhangsifang', 'yes')
     if (player.value.allianceIds.includes('liming')) {
-      castVote(voteId, 'liming', 'yes')
+      castVote(cv.id, 'liming', 'yes')
     }
 
     // 王员外及其附庸投反对
-    castVote(voteId, 'wangyuanwai', 'no')
+    castVote(cv.id, 'wangyuanwai', 'no')
 
     // 中立派随机
     if (Math.random() > 0.5) {
       competitors.value.filter(c => c.style === 'neutral' && c.active).forEach(c => {
-        castVote(voteId, c.id, 'yes')
+        castVote(cv.id, c.id, 'yes')
       })
     }
 
@@ -727,30 +825,34 @@ export const useGameStore = defineStore('game', () => {
     if (cropId === 'tea' && currentNode.value === 'ch1_prep_phase' && !flags.value['first_shipment_done']) {
       flags.value['first_shipment_done'] = true
 
-      // 延迟触发，让剧情节点出现
-      setTimeout(() => {
-        cargoEvents.value.push({
-          id: `cargo_first_tea`,
-          title: '首批茶叶运货',
-          description: '200斤桃源春茶运往襄州——这是打破王员外垄断的关键一役。',
-          route: '鹰嘴崖小道 → 襄州茶市',
-          cargoType: '茶叶',
-          value: 120,
-          status: 'preparing',
-          departureDay: totalDays.value,
-          arrivalDay: totalDays.value + 5,
-          escortStrength: 3,
-          threatLevel: 5,
-          saboteurId: null,
-          outcome: ''
-        })
-        addLog('【商路】首批茶叶准备就绪，马刀头正在组织镖队。', 'business')
-      }, 500)
+      cargoEvents.value.push({
+        id: `cargo_first_tea`,
+        title: '首批茶叶运货',
+        description: '200斤桃源春茶运往襄州——这是打破王员外垄断的关键一役。',
+        route: '鹰嘴崖小道 → 襄州茶市',
+        cargoType: '茶叶',
+        value: 120,
+        status: 'preparing',
+        departureDay: totalDays.value + 1,
+        arrivalDay: totalDays.value + 6,
+        escortStrength: 3,
+        threatLevel: 5,
+        saboteurId: null,
+        outcome: ''
+      })
+      addLog('【商路】首批茶叶准备就绪，马刀头正在组织镖队。', 'business')
     }
   }
 
   // ---- 商战日常推进 ----
   function advanceBusinessWar() {
+    // 处理待投票的商会提案
+    chamberVotes.value.forEach(cv => {
+      if (cv.status === 'voting' && totalDays.value >= cv.resolveDay) {
+        resolveChamberVoteInternal(cv)
+      }
+    })
+
     // 价格战推进
     if (priceWar.value?.active) {
       advancePriceWar()
@@ -829,7 +931,7 @@ export const useGameStore = defineStore('game', () => {
 
     activeSeasonalEvent.value = null
     showSeasonalDialog.value = false
-    advanceTime()
+    // 不再调用 advanceTime()，避免季节事件完成后双重推进时间
   }
 
   function skipSeasonalEvent() {
@@ -894,6 +996,143 @@ export const useGameStore = defineStore('game', () => {
     goToNode('prologue_start')
   }
 
+  // ---- 存档系统 ----
+  const SAVE_KEY_PREFIX = 'guiyuan_save_'
+
+  interface SaveData {
+    version: number
+    timestamp: number
+    slotName: string
+    phase: 'title' | 'playing' | 'paused'
+    totalDays: number
+    currentNode: string
+    currentChapter: string
+    dialogueHistory: { speaker: string; content: string }[]
+    flags: Record<string, boolean>
+    log: { day: number; timeOfDay: TimeOfDay; type: string; message: string }[]
+    date: GameDate
+    player: Player
+    farmLands: FarmLand[]
+    npcs: NPC[]
+    market: MarketPrice[]
+    competitors: Competitor[]
+    chamberVotes: ChamberVote[]
+    priceWar: PriceWar | null
+    cargoEvents: CargoEvent[]
+    hostileActions: HostileAction[]
+    completedSeasonalEvents: string[]
+  }
+
+  function getSaveData(): SaveData {
+    return {
+      version: 1,
+      timestamp: Date.now(),
+      slotName: '',
+      phase: phase.value,
+      totalDays: totalDays.value,
+      currentNode: currentNode.value,
+      currentChapter: currentChapter.value,
+      dialogueHistory: JSON.parse(JSON.stringify(dialogueHistory.value)),
+      flags: JSON.parse(JSON.stringify(flags.value)),
+      log: JSON.parse(JSON.stringify(log.value)),
+      date: JSON.parse(JSON.stringify(date.value)),
+      player: JSON.parse(JSON.stringify(player.value)),
+      farmLands: JSON.parse(JSON.stringify(farmLands.value)),
+      npcs: JSON.parse(JSON.stringify(npcs.value)),
+      market: JSON.parse(JSON.stringify(market.value)),
+      competitors: JSON.parse(JSON.stringify(competitors.value)),
+      chamberVotes: JSON.parse(JSON.stringify(chamberVotes.value)),
+      priceWar: priceWar.value ? JSON.parse(JSON.stringify(priceWar.value)) : null,
+      cargoEvents: JSON.parse(JSON.stringify(cargoEvents.value)),
+      hostileActions: JSON.parse(JSON.stringify(hostileActions.value)),
+      completedSeasonalEvents: JSON.parse(JSON.stringify(completedSeasonalEvents.value))
+    }
+  }
+
+  function saveGame(slot: number, slotName?: string): boolean {
+    try {
+      const data = getSaveData()
+      data.slotName = slotName || `存档 ${slot}`
+      const key = `${SAVE_KEY_PREFIX}${slot}`
+      localStorage.setItem(key, JSON.stringify(data))
+      addLog(`游戏已保存到槽位 ${slot}。`, 'system')
+      return true
+    } catch (e) {
+      console.error('存档失败:', e)
+      addLog('存档失败，请检查浏览器存储空间。', 'system')
+      return false
+    }
+  }
+
+  function loadSaveData(slot: number): SaveData | null {
+    try {
+      const key = `${SAVE_KEY_PREFIX}${slot}`
+      const raw = localStorage.getItem(key)
+      if (!raw) return null
+      return JSON.parse(raw) as SaveData
+    } catch {
+      return null
+    }
+  }
+
+  function loadGame(slot: number): boolean {
+    const data = loadSaveData(slot)
+    if (!data) {
+      addLog(`存档槽位 ${slot} 为空。`, 'system')
+      return false
+    }
+
+    phase.value = data.phase
+    totalDays.value = data.totalDays
+    currentNode.value = data.currentNode
+    currentChapter.value = data.currentChapter
+    dialogueHistory.value = data.dialogueHistory
+    flags.value = data.flags
+    log.value = data.log
+    date.value = data.date
+    player.value = data.player
+    farmLands.value = data.farmLands
+    npcs.value = data.npcs
+    market.value = data.market
+    competitors.value = data.competitors
+    chamberVotes.value = data.chamberVotes
+    priceWar.value = data.priceWar
+    cargoEvents.value = data.cargoEvents
+    hostileActions.value = data.hostileActions
+    completedSeasonalEvents.value = data.completedSeasonalEvents
+    activeSeasonalEvent.value = null
+    showSeasonalDialog.value = false
+
+    addLog(`已从槽位 ${slot} 读取存档。`, 'system')
+    return true
+  }
+
+  function deleteSave(slot: number): boolean {
+    try {
+      const key = `${SAVE_KEY_PREFIX}${slot}`
+      localStorage.removeItem(key)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  function getAllSaves(): { slot: number; name: string; timestamp: number; day: number }[] {
+    const saves: { slot: number; name: string; timestamp: number; day: number }[] = []
+    for (let i = 1; i <= 3; i++) {
+      const data = loadSaveData(i)
+      if (data) {
+        saves.push({
+          slot: i,
+          name: data.slotName,
+          timestamp: data.timestamp,
+          day: data.totalDays
+        })
+      }
+    }
+    return saves
+  }
+
   return {
     // state
     phase, totalDays, currentNode, currentChapter,
@@ -906,8 +1145,10 @@ export const useGameStore = defineStore('game', () => {
     npcsInVillage, plantedLands, activeChamberVote, activePriceWar,
     pendingCargoEvents,
     // actions
-    advanceTime, plantCrop, harvestCrop, sellItem, buySeed,
-    talkToNPC, giveGift, goToNode, newGame, addLog,
+    advanceTime, plantCrop, harvestCrop, expandLand, sellItem, buySeed,
+    talkToNPC, giveGift, goToNode, newGame, addLog, applyEffect,
+    // save
+    saveGame, loadGame, deleteSave, getAllSaves,
     // business
     initiateChamberVote, castVote, resolveChamberVote,
     startPriceWar, endPriceWar,

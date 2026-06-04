@@ -1,18 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useGameStore } from '../stores/game'
-import { crops } from '../data/crops'
+import { getCropName, getCropIcon, formatMoney } from '../composables/useGameHelpers'
 
 const store = useGameStore()
 const activeTab = ref<'market' | 'sell' | 'competitors' | 'chamber'>('market')
-
-function getCropName(id: string) {
-  return crops.find(c => c.id === id)?.name || id
-}
-
-function getCropIcon(id: string) {
-  return crops.find(c => c.id === id)?.icon || ''
-}
 </script>
 
 <template>

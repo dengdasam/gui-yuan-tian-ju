@@ -2,6 +2,7 @@
 import { useGameStore } from '../stores/game'
 
 const store = useGameStore()
+const emit = defineEmits<{ 'open-save': [] }>()
 </script>
 
 <template>
@@ -45,6 +46,9 @@ const store = useGameStore()
         <span class="status-value share">{{ store.player.marketShare }}%</span>
       </div>
 
+      <button class="btn btn-small btn-save" @click="emit('open-save')">
+        💾
+      </button>
       <button class="btn btn-small" @click="store.advanceTime()">
         过一天
       </button>

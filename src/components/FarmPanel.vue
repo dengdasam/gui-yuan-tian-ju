@@ -1,11 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useGameStore } from '../stores/game'
 import { crops } from '../data/crops'
+import { getCropName, getCropIcon, canPlantInSeason, getPlantProgress } from '../composables/useGameHelpers'
 
 const store = useGameStore()
 const showPlant = ref(false)
+const showExpand = ref(false)
 const selectedLand = ref<number | null>(null)
+
+const maxLands = 6
+const expandCost = computed(() => {
+  const currentCount = store.farmLands.length
+  if (currentCount >= maxLands) return 0
+  // 扩展费用逐级递增
+  const costs = [0, 0, 0, 150, 250, 400] // 第4/5/6块田的价格
+  return costs[currentCount] || 0
+})
+
+const canExpand = computed(() =>
+  store.farmLands.length < maxLands && store.player.gold >= expandCost.value
+)
+
+function expandLand() {
+  if (!canExpand.value) return
+  store.expandLand()
+  showExpand.value = false
+}
 
 function openPlant(landId: number) {
   selectedLand.value = landId
@@ -24,29 +45,12 @@ function doHarvest(landId: number) {
   store.harvestCrop(landId)
 }
 
-function getCropName(cropId: string | null) {
-  if (!cropId) return ''
-  return crops.find(c => c.id === cropId)?.name || cropId
-}
-
-function getCropIcon(cropId: string | null) {
-  if (!cropId) return ''
-  return crops.find(c => c.id === cropId)?.icon || ''
-}
-
 function availableCrops() {
-  return crops.filter(c => {
-    const seasonOk = c.season.includes('全季') || c.season.includes(store.date.season)
-    return seasonOk
-  })
+  return crops.filter(c => canPlantInSeason(c.id, store.date.season))
 }
 
 function getLandProgress(land: typeof store.farmLands[0]) {
-  if (!land.crop || land.ready) return 100
-  const crop = crops.find(c => c.id === land.crop)
-  if (!crop) return 0
-  const daysPassed = store.totalDays - land.plantedDay
-  return Math.min(100, Math.round((daysPassed / crop.growthDays) * 100))
+  return getPlantProgress(land, store.totalDays)
 }
 </script>
 
@@ -54,7 +58,30 @@ function getLandProgress(land: typeof store.farmLands[0]) {
   <div class="farm-panel panel">
     <div class="panel-header flex-between">
       <h3 class="panel-title">🌾 我的田地</h3>
-      <span class="land-count">{{ store.plantedLands.length }}/{{ store.farmLands.length }} 块已种</span>
+      <div class="header-right">
+        <span class="land-count">{{ store.plantedLands.length }}/{{ store.farmLands.length }} 块已种</span>
+        <button
+          v-if="store.farmLands.length < maxLands"
+          class="btn btn-tiny"
+          @click="showExpand = !showExpand"
+        >+ 开垦</button>
+      </div>
+    </div>
+
+    <!-- 扩展面板 -->
+    <div v-if="showExpand" class="expand-card">
+      <div class="expand-info">
+        <span>开垦第{{ store.farmLands.length + 1 }}块田地</span>
+        <span class="expand-cost">{{ expandCost }}文</span>
+      </div>
+      <button
+        class="btn btn-small btn-gold"
+        :disabled="!canExpand"
+        @click="expandLand"
+      >
+        {{ canExpand ? '确认开垦' : store.player.gold < expandCost ? '铜钱不足' : '已满' }}
+      </button>
+      <button class="btn btn-small" @click="showExpand = false">取消</button>
     </div>
 
     <!-- 田地列表 -->
@@ -123,7 +150,16 @@ function getLandProgress(land: typeof store.farmLands[0]) {
 }
 
 .panel-header {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .panel-title {
@@ -135,6 +171,49 @@ function getLandProgress(land: typeof store.farmLands[0]) {
 .land-count {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.btn-tiny {
+  font-family: var(--font-body);
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-tiny:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* 扩展卡片 */
+.expand-card {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #fef9e7, #fdf3c7);
+  border: 1px solid var(--gold-light);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.expand-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.expand-cost {
+  font-weight: 700;
+  color: var(--gold);
 }
 
 .lands {

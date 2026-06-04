@@ -170,7 +170,73 @@ export const npcs: NPC[] = [
     specialEvents: [],
     giftPreferences: ['tea_seed', 'wheat_seed'],
     icon: '👴',
-    sideQuests: []
+    sideQuests: [
+      {
+        id: 'laochen_legacy',
+        title: '老陈的心愿',
+        description: '老陈年纪大了，他一直想在退休前为村子做最后一件事。',
+        stage: 0,
+        maxStage: 3,
+        affectionThreshold: [30, 50, 70],
+        completed: false,
+        reward: '桃源村茶馆建成，解锁"品茶会"特殊功能',
+        stages: [
+          {
+            stage: 1,
+            title: '村长的担忧',
+            description: '老陈找到你，叹了口气——村里的年轻人都往城里跑，他担心桃源村会渐渐空了。',
+            dialogueLines: [
+              { speaker: '老陈', content: '书生啊，你看这些年轻人，一个个都说要去襄州城打工。村里的田谁来种？', emotion: 'sad' },
+              { speaker: '', content: '老陈，只要村子有发展，年轻人会回来的。', emotion: 'neutral' },
+              { speaker: '老陈', content: '发展？怎么发展？我这把年纪了，还能做什么？', emotion: 'neutral' },
+              { speaker: '', content: '您不用做什么——您只要给我们讲讲以前的故事就好。桃源村的历史，就是最好的招牌。', emotion: 'neutral' }
+            ],
+            choices: [
+              {
+                text: '请老陈讲桃源村的历史故事',
+                next: '',
+                effects: [{ type: 'affection', target: 'laochen', value: 10 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'laochen', value: 5 }]
+          },
+          {
+            stage: 2,
+            title: '桃源往事',
+            description: '老陈翻出一本泛黄的村志，给你讲了桃源村的来历——原来这里曾是前朝遗民隐居之地。',
+            dialogueLines: [
+              { speaker: '老陈', content: '这上面记着呢——前朝末年，一群不愿意降的工匠逃到了这里。', emotion: 'neutral' },
+              { speaker: '老陈', content: '他们带来了制茶的手艺、酿酒的秘方。后来人慢慢散了，手艺也失传了大半。', emotion: 'sad' },
+              { speaker: '', content: '老陈，这就是我们要找的东西！古法茶艺——桃源村的独门绝技！', emotion: 'happy' },
+              { speaker: '老陈', content: '你是说……靠这个吸引人来？', emotion: 'surprised' }
+            ],
+            choices: [
+              {
+                text: '我们建一个茶馆，专做古法茶！',
+                next: '',
+                effects: [{ type: 'affection', target: 'laochen', value: 15 }, { type: 'business_rep', value: 5 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'laochen', value: 10 }, { type: 'skill', target: 'tea_history', value: 1 }]
+          },
+          {
+            stage: 3,
+            title: '桃源茶馆',
+            description: '在村口建起了一座古色古香的茶馆，老陈每天坐在门口泡茶讲古。',
+            dialogueLines: [
+              { speaker: '旁白', content: '桃源茶馆开张了。老陈坐在门口，给来往的茶客讲桃源村的故事。', emotion: 'neutral' },
+              { speaker: '老陈', content: '这帮年轻人，听我讲故事听得都不想走了。还有两个从襄州来的，说要留下来学制茶！', emotion: 'happy' },
+              { speaker: '', content: '你看，村子不会空的。', emotion: 'neutral' },
+              { speaker: '老陈', content: '我这辈子总算给村里留下了点什么。谢谢你，书生。', emotion: 'happy' }
+            ],
+            effects: [
+              { type: 'fame', value: 15 }, { type: 'affection', target: 'laochen', value: 20 },
+              { type: 'business_rep', value: 10 }, { type: 'market_share', value: 5 }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     id: 'xiaohe',
@@ -342,7 +408,73 @@ export const npcs: NPC[] = [
     specialEvents: [],
     giftPreferences: ['ginseng_seed', 'grape_seed'],
     icon: '🎩',
-    sideQuests: []
+    sideQuests: [
+      {
+        id: 'wang_redemption',
+        title: '王员外的转变',
+        description: '如果能化解与王员外的恩怨，他会成为一个强大的盟友。',
+        stage: 0,
+        maxStage: 3,
+        affectionThreshold: [30, 50, 70],
+        completed: false,
+        reward: '王员外成为盟友，解锁特殊商路和价格保护',
+        stages: [
+          {
+            stage: 1,
+            title: '意外的善举',
+            description: '王员外病倒了，他的管家偷偷来找云娘。你得知后，主动帮忙。',
+            dialogueLines: [
+              { speaker: '旁白', content: '王员外的管家慌慌张张跑到药铺——王员外病重，镇上的大夫都请遍了，没人治得好。', emotion: 'neutral' },
+              { speaker: '云娘', content: '是积劳成疾加上肝火旺盛。我能治，但他得静养一个月。', emotion: 'neutral' },
+              { speaker: '', content: '（沉思）云娘，你去给他看看吧。虽然我们是对手，但人命关天。', emotion: 'neutral' },
+              { speaker: '云娘', content: '（意外）你倒大度。行，我去。', emotion: 'surprised' }
+            ],
+            choices: [
+              {
+                text: '让云娘全力医治王员外',
+                next: '',
+                effects: [{ type: 'affection', target: 'wangyuanwai', value: 20 }, { type: 'affection', target: 'yunniang', value: 5 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'wangyuanwai', value: 10 }]
+          },
+          {
+            stage: 2,
+            title: '病榻上的对话',
+            description: '王员外病好后，主动来找你。他看起来憔悴了很多。',
+            dialogueLines: [
+              { speaker: '王员外', content: '（神色疲惫）听说……是你让云娘来救我的。', emotion: 'neutral' },
+              { speaker: '', content: '生意归生意，人命归人命。', emotion: 'neutral' },
+              { speaker: '王员外', content: '（苦笑）我做了二十年生意，从没人这么对我。你知道吗，当年你叔父——也是这么对我的。', emotion: 'sad' },
+              { speaker: '王员外', content: '他是我最好的朋友，直到那次商会上我出卖了他……我这些年不是恨你，是恨我自己。', emotion: 'sad' }
+            ],
+            choices: [
+              {
+                text: '过去的就过去了。我们可以重新开始。',
+                next: '',
+                effects: [{ type: 'affection', target: 'wangyuanwai', value: 25 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'wangyuanwai', value: 15 }]
+          },
+          {
+            stage: 3,
+            title: '化敌为友',
+            description: '王员外正式退出垄断，把他的商路资源分享给你。曾经的对手，变成了忘年交。',
+            dialogueLines: [
+              { speaker: '王员外', content: '（拿出一叠地契和商路图）这些都是我这些年攒下的。你拿着，比我拿着有用。', emotion: 'neutral' },
+              { speaker: '', content: '王员外，这些太贵重了。', emotion: 'surprised' },
+              { speaker: '王员外', content: '（摇头）不贵重。我这辈子赚了很多钱，但没有一个真正的朋友。你叔父是一个，你也是。', emotion: 'sad' },
+              { speaker: '旁白', content: '【王员外的转变·完】曾经的敌人变成了最可靠的盟友。', emotion: 'neutral' }
+            ],
+            effects: [
+              { type: 'affection', target: 'wangyuanwai', value: 30 }, { type: 'business_rep', value: 20 },
+              { type: 'market_share', value: 10 }, { type: 'gold', value: 200 }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     id: 'madaotou',
@@ -361,7 +493,73 @@ export const npcs: NPC[] = [
     specialEvents: [],
     giftPreferences: ['rice_seed'],
     icon: '🥷',
-    sideQuests: []
+    sideQuests: [
+      {
+        id: 'madaotou_escort',
+        title: '镖行天下',
+        description: '马刀头的威远镖局近来生意惨淡。你能帮他开辟新的商路吗？',
+        stage: 0,
+        maxStage: 3,
+        affectionThreshold: [25, 45, 65],
+        completed: false,
+        reward: '解锁"快速运货"功能，商路不再被截货',
+        stages: [
+          {
+            stage: 1,
+            title: '镖局的困境',
+            description: '马刀头在茶棚里闷闷不乐——威远镖局最近被襄州的大镖局抢了不少生意。',
+            dialogueLines: [
+              { speaker: '马刀头', content: '唉……这碗酒喝着都不香了。襄州那个"四海镖局"，背后有沈万金撑腰，把我们的生意全抢了。', emotion: 'sad' },
+              { speaker: '', content: '马大哥，别灰心。你们的优势在于熟悉山路——那些大镖局只走官道。', emotion: 'neutral' },
+              { speaker: '马刀头', content: '话是这么说……但没生意就是没生意。兄弟们都快揭不开锅了。', emotion: 'sad' },
+              { speaker: '', content: '那正好——我们桃源茶社需要稳定的运力。以后茶叶都交给你们走，按趟结钱。', emotion: 'neutral' }
+            ],
+            choices: [
+              {
+                text: '与威远镖局签订长期运货协议',
+                next: '',
+                effects: [{ type: 'affection', target: 'madaotou', value: 15 }, { type: 'gold', value: -50 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'madaotou', value: 10 }]
+          },
+          {
+            stage: 2,
+            title: '开辟新路线',
+            description: '马刀头带着兄弟们探出了三条绕过襄州关卡的山路。',
+            dialogueLines: [
+              { speaker: '马刀头', content: '（摊开一张羊皮地图）书生你看——这三条路，都是我们兄弟一步步走出来的！', emotion: 'happy' },
+              { speaker: '马刀头', content: '第一条走鹰嘴崖，第二条翻翠屏山，第三条沿着溪谷——沈万金的人一条都守不到！', emotion: 'happy' },
+              { speaker: '', content: '太好了！有了这些路线，我们的货再也不用看襄州商会的脸色了。', emotion: 'happy' },
+              { speaker: '马刀头', content: '不过有件事——走山路骡马损耗大，得添置些新骡子。', emotion: 'neutral' }
+            ],
+            choices: [
+              {
+                text: '出钱帮镖局添置骡马',
+                next: '',
+                effects: [{ type: 'affection', target: 'madaotou', value: 15 }, { type: 'gold', value: -80 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'madaotou', value: 10 }, { type: 'business_rep', value: 5 }]
+          },
+          {
+            stage: 3,
+            title: '威远镖局·重生',
+            description: '威远镖局成了终南山一带最可靠的镖局，马刀头意气风发。',
+            dialogueLines: [
+              { speaker: '马刀头', content: '（哈哈大笑）书生！这个月我们走了十二趟镖，趟趟安全！兄弟们都领了双倍工钱！', emotion: 'happy' },
+              { speaker: '', content: '恭喜马大哥。以后我们的茶叶、药材、粮食，都交给你们。', emotion: 'neutral' },
+              { speaker: '马刀头', content: '那是自然。谁敢截你的货，就是跟我马某人过不去！', emotion: 'happy' },
+              { speaker: '旁白', content: '【镖行天下·完】威远镖局重振雄风，你的货物从此有了最可靠的保障。', emotion: 'neutral' }
+            ],
+            effects: [
+              { type: 'fame', value: 10 }, { type: 'affection', target: 'madaotou', value: 20 },
+              { type: 'business_rep', value: 10 }, { type: 'market_share', value: 5 }
+            ]
+          }
+        ]
+      }
+    ]
   },
   {
     id: 'liming',
@@ -380,7 +578,73 @@ export const npcs: NPC[] = [
     specialEvents: [],
     giftPreferences: ['tea_seed', 'ginseng_seed'],
     icon: '🧑‍💼',
-    sideQuests: []
+    sideQuests: [
+      {
+        id: 'liming_tea_master',
+        title: '茶道传承',
+        description: '李明一直想恢复父亲留下的"茗香茶庄"的招牌，成为终南山最顶级的茶师。',
+        stage: 0,
+        maxStage: 3,
+        affectionThreshold: [20, 40, 60],
+        completed: false,
+        reward: '解锁"顶级茶品"制作，茶叶售价提升30%',
+        stages: [
+          {
+            stage: 1,
+            title: '父亲的遗愿',
+            description: '李明带你去了他家的老茶庄——已经破败，但墙上还挂着"茗香第一"的匾额。',
+            dialogueLines: [
+              { speaker: '李明', content: '（摸着旧匾额）我父亲在世时，茗香茶庄是终南山下最好的茶庄。', emotion: 'sad' },
+              { speaker: '李明', content: '他有一套独门的炒茶手艺——火候、手法、时间，都有讲究。可惜他只传了我一半就走了。', emotion: 'sad' },
+              { speaker: '', content: '那另一半呢？', emotion: 'neutral' },
+              { speaker: '李明', content: '（苦笑）在他留下的笔记里。但我看不懂——他用的全是暗语。', emotion: 'neutral' }
+            ],
+            choices: [
+              {
+                text: '我们一起研究笔记，一定要把茗香茶庄的招牌重新立起来',
+                next: '',
+                effects: [{ type: 'affection', target: 'liming', value: 15 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'liming', value: 10 }]
+          },
+          {
+            stage: 2,
+            title: '破解茶经',
+            description: '你和李明花了一个月时间，结合云娘的药材知识和老陈的村志，终于破解了李父的炒茶秘方。',
+            dialogueLines: [
+              { speaker: '李明', content: '（兴奋地）原来如此！我父亲把火候用草药的"文火武火"来描述，难怪我看不懂！', emotion: 'happy' },
+              { speaker: '云娘', content: '你父亲真是奇才。把茶经和药经结合，前无古人。', emotion: 'surprised' },
+              { speaker: '', content: '那现在，让我们试试——用古法炒一批茶。', emotion: 'neutral' },
+              { speaker: '旁白', content: '第一锅古法茶出炉时，茶香飘满了整个村子。', emotion: 'neutral' }
+            ],
+            choices: [
+              {
+                text: '这茶……和以前完全不一样！',
+                next: '',
+                effects: [{ type: 'affection', target: 'liming', value: 20 }, { type: 'skill', target: 'tea_mastery', value: 1 }]
+              }
+            ],
+            effects: [{ type: 'affection', target: 'liming', value: 10 }, { type: 'business_rep', value: 10 }]
+          },
+          {
+            stage: 3,
+            title: '茗香再现',
+            description: '茗香茶庄重新开张，用古法制作的"终南春露"茶一炮而红，京城茶商争相订购。',
+            dialogueLines: [
+              { speaker: '旁白', content: '茗香茶庄重新开张。李明穿着他父亲当年的长衫，站在门口迎接八方来客。', emotion: 'neutral' },
+              { speaker: '李明', content: '（眼眶湿润）父亲，您看到了吗？茗香的招牌又亮起来了。', emotion: 'happy' },
+              { speaker: '', content: '（拍拍他的肩）这是你父亲传下来的手艺，也是你自己拼出来的。', emotion: 'neutral' },
+              { speaker: '李明', content: '没有你，我一个人做不到。以后茗香茶庄和桃源茶社，永为一家。', emotion: 'happy' }
+            ],
+            effects: [
+              { type: 'fame', value: 20 }, { type: 'affection', target: 'liming', value: 25 },
+              { type: 'business_rep', value: 15 }, { type: 'market_share', value: 10 }, { type: 'gold', value: 150 }
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]
 

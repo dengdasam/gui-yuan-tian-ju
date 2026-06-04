@@ -16,9 +16,9 @@ function nextNode() {
   const node = currentEventNode.value
   if (!node) return
 
-  // 触发效果
+  // 触发进入效果
   if (node.onEnter) {
-    node.onEnter.forEach(e => store.addLog('应用效果', 'festival'))
+    node.onEnter.forEach(e => store.applyEffect(e))
   }
 
   // 如果有下一个节点
@@ -32,12 +32,29 @@ function nextNode() {
 }
 
 function makeChoice(nextNodeId: string, effects?: { type: string; target?: string; value: number }[]) {
+  // 先应用选择效果
   if (effects) {
     effects.forEach(e => {
-      // 简化版效果应用
+      store.applyEffect(e)
     })
   }
-  nextNode()
+  // 如果 nextNodeId 有指定，跳转到对应节点
+  if (nextNodeId) {
+    const nodes = store.activeSeasonalEvent!.nodes
+    const targetIdx = nodes.findIndex(n => n.id === nextNodeId)
+    if (targetIdx !== -1) {
+      currentNodeIdx.value = targetIdx
+      // 对新节点应用 onEnter 效果
+      const targetNode = nodes[targetIdx]
+      if (targetNode.onEnter) {
+        targetNode.onEnter.forEach(e => store.applyEffect(e))
+      }
+    } else {
+      nextNode()
+    }
+  } else {
+    nextNode()
+  }
 }
 
 function close() {
@@ -93,8 +110,8 @@ function close() {
           </div>
         </div>
 
-        <!-- 底部操作 -->
-        <div class="event-footer">
+        <!-- 底部操作：仅当无选择项时显示 -->
+        <div v-if="!currentEventNode?.choices?.length" class="event-footer">
           <button class="btn" @click="nextNode">
             继续
           </button>

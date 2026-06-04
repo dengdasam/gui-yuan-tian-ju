@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/game'
+import type { Effect } from '../types'
 
 const store = useGameStore()
 
@@ -14,9 +15,9 @@ const hasNext = computed(() => {
   return node.value?.next && !hasChoices.value
 })
 
-function handleChoice(choice: { text: string; next: string; effects?: any[] }) {
+function handleChoice(choice: { text: string; next: string; effects?: Effect[] }) {
   if (choice.effects) {
-    choice.effects.forEach((e: any) => store.applyEffect(e))
+    choice.effects.forEach(e => store.applyEffect(e))
   }
   store.goToNode(choice.next)
 }

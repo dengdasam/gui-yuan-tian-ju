@@ -6,27 +6,38 @@ const store = useGameStore()
 const selectedNPC = ref<string | null>(null)
 const npcDialogue = ref('')
 const showQuest = ref(false)
+const showGiftPicker = ref(false)
 
 function talk(npcId: string) {
   selectedNPC.value = npcId
   npcDialogue.value = store.talkToNPC(npcId)
   showQuest.value = false
+  showGiftPicker.value = false
 }
 
-function gift(npcId: string) {
-  const gifts = store.player.inventory.filter(i => i.type === 'crop')
-  if (gifts.length === 0) {
-    npcDialogue.value = '你身上没有可以送礼的物品。'
-    return
+function openGiftPicker() {
+  showGiftPicker.value = !showGiftPicker.value
+}
+
+function gift(npcId: string, itemId: string) {
+  const success = store.giveGift(npcId, itemId)
+  if (success) {
+    const item = store.player.inventory.find(i => i.itemId === itemId)
+    if (item) {
+      npcDialogue.value = `送出了${item.name}。`
+    }
+    showGiftPicker.value = false
   }
-  const item = gifts[0]
-  store.giveGift(npcId, item.itemId)
-  npcDialogue.value = `送出了${item.name}。`
+}
+
+function getGiftableItems() {
+  return store.player.inventory.filter(i => i.type === 'crop' || i.type === 'gift' || i.type === 'special')
 }
 
 function toggleQuest(npcId: string) {
   showQuest.value = !showQuest.value
   selectedNPC.value = npcId
+  showGiftPicker.value = false
 }
 
 function getRelationColor(affection: number) {
@@ -42,6 +53,16 @@ function getRelationLabel(affection: number) {
   if (affection >= 30) return '相识'
   if (affection >= 0) return '路人'
   return '冷淡'
+}
+
+function getNpcGiftPreferences(npcId: string): string[] {
+  const npc = store.npcs.find(n => n.id === npcId)
+  return npc?.giftPreferences || []
+}
+
+function isPreferred(itemId: string, npcId: string): boolean {
+  const prefs = getNpcGiftPreferences(npcId)
+  return prefs.some(pref => itemId.includes(pref.replace('_seed', '')))
 }
 </script>
 
@@ -118,12 +139,31 @@ function getRelationLabel(affection: number) {
     <div v-if="npcDialogue && selectedNPC && !showQuest" class="npc-dialogue">
       <span class="dialogue-avatar">{{ store.npcs.find(n => n.id === selectedNPC)?.icon }}</span>
       <span class="dialogue-text">{{ npcDialogue }}</span>
-      <button
-        v-if="store.npcs.find(n => n.id === selectedNPC)?.met"
-        class="btn btn-small"
-        style="margin-top:6px;width:100%"
-        @click="gift(selectedNPC!)"
-      >送礼 🎁</button>
+      <div v-if="store.npcs.find(n => n.id === selectedNPC)?.met" class="gift-area">
+        <button
+          class="btn btn-small gift-toggle"
+          @click="openGiftPicker"
+        >送礼 🎁</button>
+
+        <!-- 礼物选择器 -->
+        <div v-if="showGiftPicker" class="gift-picker">
+          <div v-if="getGiftableItems().length === 0" class="gift-empty">
+            你没有可以送礼的物品。
+          </div>
+          <button
+            v-for="item in getGiftableItems()"
+            :key="item.itemId"
+            class="gift-item-btn"
+            :class="{ preferred: selectedNPC && isPreferred(item.itemId, selectedNPC) }"
+            @click="gift(selectedNPC!, item.itemId)"
+          >
+            <span class="gift-icon">{{ item.icon }}</span>
+            <span class="gift-name">{{ item.name }}</span>
+            <span class="gift-qty">×{{ item.quantity }}</span>
+            <span v-if="selectedNPC && isPreferred(item.itemId, selectedNPC)" class="gift-pref-badge">❤</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -209,4 +249,58 @@ function getRelationLabel(affection: number) {
 }
 .dialogue-avatar { font-size: 20px; margin-bottom: 4px; }
 .dialogue-text { font-size: 13px; color: var(--text-primary); line-height: 1.6; }
+
+/* 礼物系统 */
+.gift-area {
+  margin-top: 8px;
+}
+
+.gift-toggle {
+  width: 100%;
+}
+
+.gift-picker {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.gift-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.gift-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+  font-size: 13px;
+  text-align: left;
+}
+.gift-item-btn:hover {
+  background: var(--bg-paper);
+  border-color: var(--gold-light);
+  transform: translateX(2px);
+}
+.gift-item-btn.preferred {
+  border-color: var(--red);
+  background: linear-gradient(135deg, #fff5f5, #fef0f0);
+}
+
+.gift-icon { font-size: 14px; }
+.gift-name { flex: 1; color: var(--text-primary); }
+.gift-qty { font-size: 11px; color: var(--text-muted); }
+.gift-pref-badge { font-size: 12px; }
 </style>

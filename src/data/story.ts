@@ -3,7 +3,7 @@ import type { StoryNode, Chapter } from '../types'
 // ============================================
 // 序章：归去来兮
 // ============================================
-export const storyNodes: Record<string, StoryNode> = {
+const prologueAndCh1Nodes: Record<string, StoryNode> = {
   // ---- 开场 ----
   prologue_start: {
     id: 'prologue_start',
@@ -1024,6 +1024,1042 @@ export const storyNodes: Record<string, StoryNode> = {
 }
 
 // ============================================
+// 第二章：夏耘 —— 村庄危机与情谊
+// ============================================
+export const chapter2Nodes: Record<string, StoryNode> = {
+  ch2_intro: {
+    id: 'ch2_intro',
+    type: 'narration',
+    background: '盛夏的桃源村，蝉鸣如织，稻田泛着金光。',
+    dialogue: [
+      { speaker: '旁白', content: '夏天来了。田里的庄稼长势喜人，商路也逐渐稳定下来。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你在桃源村的日子过得平静而充实。但平静之下，总有暗流涌动。', emotion: 'neutral' }
+    ],
+    next: 'ch2_water_crisis'
+  },
+
+  ch2_water_crisis: {
+    id: 'ch2_water_crisis',
+    type: 'event',
+    background: '村中水渠——干涸见底',
+    dialogue: [
+      { speaker: '旁白', content: '入夏以来，连续二十天没有下雨。田里的庄稼开始打蔫，水渠也见了底。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（焦急地）上游的张家村把水截了。他们说今年天旱，水不够分。', emotion: 'angry' },
+      { speaker: '小荷', content: '陈爷爷，田里的稻子都黄了……再没水，今年就白种了。', emotion: 'sad' },
+      { speaker: '旁白', content: '村民们聚在村口，七嘴八舌。有人说去上游理论，有人说认命算了。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '提议修一条新水渠，从后山引水',
+        next: 'ch2_water_build',
+        effects: [
+          { type: 'affection', target: 'laochen', value: 10 },
+          { type: 'fame', value: 5 },
+          { type: 'gold', value: -30 }
+        ]
+      },
+      {
+        text: '带人去上游谈判，争取分水',
+        next: 'ch2_water_negotiate',
+        effects: [
+          { type: 'affection', target: 'laochen', value: 5 },
+          { type: 'business_rep', value: 5 }
+        ]
+      },
+      {
+        text: '请教云娘——她懂水文，或许有别的方法',
+        next: 'ch2_water_yunniang',
+        effects: [
+          { type: 'affection', target: 'yunniang', value: 10 }
+        ]
+      }
+    ]
+  },
+
+  ch2_water_build: {
+    id: 'ch2_water_build',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '后山有一条暗溪，水不大但常年不断。我们可以挖一条渠，把水引下来。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（眼睛一亮）对！那条暗溪我知道。不过要挖渠得费不少人力……', emotion: 'surprised' },
+      { speaker: '', content: '我们村的人一起干。马刀头的兄弟也能帮忙。', emotion: 'neutral' },
+      { speaker: '旁白', content: '说干就干。全村男女老少齐上阵，马刀头也带了几个镖师来帮忙。', emotion: 'neutral' },
+      { speaker: '旁白', content: '三天后，新渠通水。清凉的溪水流进稻田，村民们欢呼起来。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'laochen', value: 15 },
+      { type: 'affection', target: 'madaotou', value: 10 },
+      { type: 'fame', value: 10 },
+      { type: 'stamina', value: -15 }
+    ],
+    next: 'ch2_xiaohe_arc'
+  },
+
+  ch2_water_negotiate: {
+    id: 'ch2_water_negotiate',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '（站在张家村村长面前）老村长，天旱大家都不容易。但截了水，下游的地就全完了。', emotion: 'neutral' },
+      { speaker: '张村长', content: '（叹气）我何尝不知道。可我们村也快撑不住了……', emotion: 'sad' },
+      { speaker: '', content: '这样——我们轮流用水。单日你们用，双日我们用。再不行，我们一起想办法找新水源。', emotion: 'neutral' },
+      { speaker: '张村长', content: '（沉默片刻）成！难得有人肯坐下来好好商量。就按你说的办。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 8 },
+      { type: 'business_rep', value: 5 }
+    ],
+    next: 'ch2_xiaohe_arc'
+  },
+
+  ch2_water_yunniang: {
+    id: 'ch2_water_yunniang',
+    type: 'dialogue',
+    background: '云娘的药铺——她正在翻看一本泛黄的《终南山志》',
+    dialogue: [
+      { speaker: '云娘', content: '天旱不是头一回了。这本山志上说，后山鹰嘴崖下有一眼老井，深不见底，水从来不断。', emotion: 'neutral' },
+      { speaker: '云娘', content: '只是年久失修，井口塌了。要是能掏开……', emotion: 'neutral' },
+      { speaker: '', content: '太好了！我这就带人去。', emotion: 'happy' },
+      { speaker: '旁白', content: '你和几个村民在后山找到了那眼老井。掏了一天一夜，清水涌出。水渠重新满了起来。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'yunniang', value: 15 },
+      { type: 'skill', target: 'herb_knowledge', value: 1 },
+      { type: 'stamina', value: -10 }
+    ],
+    next: 'ch2_xiaohe_arc'
+  },
+
+  // ---- 小荷感情线 ----
+  ch2_xiaohe_arc: {
+    id: 'ch2_xiaohe_arc',
+    type: 'dialogue',
+    background: '傍晚的稻田边——夕阳染红了天',
+    dialogue: [
+      { speaker: '旁白', content: '水的问题解决后，日子恢复了平静。但有一件事，开始悄悄发生变化。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（坐在田埂上，晃着脚）书生哥，你说山外边是什么样子的？', emotion: 'neutral' },
+      { speaker: '', content: '（坐到她旁边）很大，很热闹，也很累。', emotion: 'neutral' },
+      { speaker: '小荷', content: '那你还想回去吗？回京城，继续考科举？', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '不回去了。这里就是我的家。',
+        next: 'ch2_xiaohe_stay',
+        effects: [
+          { type: 'affection', target: 'xiaohe', value: 20 }
+        ]
+      },
+      {
+        text: '说不好……也许有一天，还是会去看看。',
+        next: 'ch2_xiaohe_maybe',
+        effects: [
+          { type: 'affection', target: 'xiaohe', value: 5 }
+        ]
+      }
+    ]
+  },
+
+  ch2_xiaohe_stay: {
+    id: 'ch2_xiaohe_stay',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '小荷', content: '（眼睛亮了起来）真的吗？', emotion: 'happy' },
+      { speaker: '', content: '（微笑）嗯。京城再好，也没有这里的稻田、这里的风、还有……这里的人。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（低下头，脸红了）那……那你以后打算做什么？就一直种地吗？', emotion: 'neutral' },
+      { speaker: '', content: '不止。我想把桃源村的茶卖到更远的地方，让更多人知道这里。', emotion: 'neutral' },
+      { speaker: '小荷', content: '我帮你！我会采茶，还会炒茶。我爷爷以前是茶师呢。', emotion: 'happy' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'xiaohe', value: 15 }
+    ],
+    next: 'ch2_hidden_secret'
+  },
+
+  ch2_xiaohe_maybe: {
+    id: 'ch2_xiaohe_maybe',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '小荷', content: '（神情暗了暗）哦……也是，你是读书人，总归是要走的。', emotion: 'sad' },
+      { speaker: '', content: '不，我不是那个意思。只是……有些事还没想明白。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（强笑）没关系。不管你去哪里，桃源村永远是你的家。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你看着小荷的背影，心里有些说不清的感觉。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'xiaohe', value: 8 }
+    ],
+    next: 'ch2_hidden_secret'
+  },
+
+  // ---- 村庄秘密 ----
+  ch2_hidden_secret: {
+    id: 'ch2_hidden_secret',
+    type: 'event',
+    background: '老陈家的后院——一口古井旁',
+    dialogue: [
+      { speaker: '旁白', content: '一天夜里，老陈把你叫到了他家后院。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（神色凝重）书生，有件事，我一直没告诉你。', emotion: 'neutral' },
+      { speaker: '老陈', content: '你叔父留给你的那间草庐，不是随便给你的。那屋子里……藏着一个秘密。', emotion: 'neutral' },
+      { speaker: '', content: '什么秘密？', emotion: 'surprised' },
+      { speaker: '老陈', content: '你叔父当年不是普通农夫。他是前任商会会长——被王员外用计逼走的。', emotion: 'neutral' },
+      { speaker: '老陈', content: '他在草庐里留了一本账册，记录了王员外早年走私、偷税的全部证据。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '（震惊）我马上去找那本账册！',
+        next: 'ch2_find_ledger',
+        effects: [
+          { type: 'business_rep', value: 5 }
+        ]
+      },
+      {
+        text: '（冷静）为什么现在才告诉我？',
+        next: 'ch2_why_now',
+        effects: [
+          { type: 'affection', target: 'laochen', value: 5 }
+        ]
+      }
+    ]
+  },
+
+  ch2_find_ledger: {
+    id: 'ch2_find_ledger',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你跑回草庐，在老陈的指引下，掀开床板——下面有一个铁盒。', emotion: 'neutral' },
+      { speaker: '旁白', content: '铁盒里是一本发黄的账册，详细记录了王员外二十年来的走私账目。', emotion: 'neutral' },
+      { speaker: '', content: '（翻看账册）有了这个，王员外就再也翻不了身了。', emotion: 'neutral' },
+      { speaker: '老陈', content: '但要小心。王员外一直在找这本账册。他若知道在你手里，绝不会善罢甘休。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'item', target: 'ledger', value: 1 }
+    ],
+    next: 'ch2_ledger_choice'
+  },
+
+  ch2_why_now: {
+    id: 'ch2_why_now',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '老陈', content: '（苦笑）因为之前告诉你也没用。你一个落榜书生，手里有证据又能怎样？', emotion: 'neutral' },
+      { speaker: '老陈', content: '但现在不一样了——你有了商会、有了李明、有了马刀头。你有能力和王员外掰手腕了。', emotion: 'neutral' },
+      { speaker: '', content: '（沉思）明白了。那账册在哪？', emotion: 'neutral' },
+      { speaker: '老陈', content: '草庐床板下面。我带你去找。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'laochen', value: 10 }
+    ],
+    next: 'ch2_find_ledger'
+  },
+
+  ch2_ledger_choice: {
+    id: 'ch2_ledger_choice',
+    type: 'choice',
+    dialogue: [
+      { speaker: '旁白', content: '你手里握着这本足以摧毁王员外的账册。如何使用它？', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '交到县衙——让官府来办',
+        next: 'ch2_ledger_official',
+        effects: [
+          { type: 'fame', value: 20 },
+          { type: 'business_rep', value: 10 },
+          { type: 'affection', target: 'wangyuanwai', value: -50 }
+        ]
+      },
+      {
+        text: '私下找王员外——用账册换他彻底退出',
+        next: 'ch2_ledger_blackmail',
+        effects: [
+          { type: 'affection', target: 'wangyuanwai', value: -30 },
+          { type: 'business_rep', value: -5 }
+        ]
+      },
+      {
+        text: '暂时不公开——作为最后的底牌',
+        next: 'ch2_ledger_keep',
+        effects: [
+          { type: 'business_rep', value: 5 }
+        ]
+      }
+    ]
+  },
+
+  ch2_ledger_official: {
+    id: 'ch2_ledger_official',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你带着账册和李明一同前往县衙。县丞看完账册，脸色大变。', emotion: 'neutral' },
+      { speaker: '旁白', content: '三日后，县衙派人查封了王员外的茶莊和仓库。王员外被押入大牢，等待审问。', emotion: 'neutral' },
+      { speaker: '旁白', content: '消息传开，整个终南三县的商界都震动了。桃源村的名声传得更远了。', emotion: 'neutral' },
+      { speaker: '李明', content: '（感慨）你叔父等这一天，等了二十年。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 30 },
+      { type: 'business_rep', value: 20 },
+      { type: 'market_share', value: 15 },
+      { type: 'gold', value: 100 }
+    ],
+    next: 'ch2_summer_festival'
+  },
+
+  ch2_ledger_blackmail: {
+    id: 'ch2_ledger_blackmail',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '（独自来到王员外府上，把账册放在桌上）王员外，认得这个吗？', emotion: 'neutral' },
+      { speaker: '王员外', content: '（脸色刷白）你……你从哪里找到的？', emotion: 'surprised' },
+      { speaker: '', content: '不重要。重要的是——你退出终南山的茶叶生意，我毁掉这本账册。', emotion: 'neutral' },
+      { speaker: '王员外', content: '（沉默良久）……我认栽。三天之内，我撤走所有茶莊。', emotion: 'sad' },
+      { speaker: '旁白', content: '王员外信守了诺言。从此，桃源村茶叶再无人垄断。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'market_share', value: 20 },
+      { type: 'gold', value: 150 }
+    ],
+    next: 'ch2_summer_festival'
+  },
+
+  ch2_ledger_keep: {
+    id: 'ch2_ledger_keep',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你把账册藏在了只有自己知道的地方。这是你的底牌，在最需要的时候再用。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（点头）也好。王员外现在被你商场上压着，暂时翻不起浪。留着账册，以防万一。', emotion: 'neutral' },
+      { speaker: '', content: '不急。眼下重要的是把桃源村的茶叶做得更大。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'business_rep', value: 8 },
+      { type: 'skill', target: 'strategy', value: 1 }
+    ],
+    next: 'ch2_summer_festival'
+  },
+
+  // ---- 夏祭 ----
+  ch2_summer_festival: {
+    id: 'ch2_summer_festival',
+    type: 'narration',
+    background: '桃源村的晒谷场——挂满了灯笼',
+    dialogue: [
+      { speaker: '旁白', content: '夏至这天，桃源村办起了夏祭。晒谷场上挂满了灯笼，村民们围坐在一起。', emotion: 'neutral' },
+      { speaker: '旁白', content: '这一年你经历了太多——从落榜书生到如今，你已是桃源村不可或缺的一份子。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（端着一碗冰镇酸梅汤）书生哥，尝尝，我做的！', emotion: 'happy' },
+      { speaker: '老陈', content: '（端着酒杯）来，书生，老夫敬你一杯。这一年，要不是你，桃源村早就被王员外榨干了。', emotion: 'happy' },
+      { speaker: '旁白', content: '觥筹交错间，你望着漫天繁星，心中前所未有地安宁。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'stamina', value: 20 },
+      { type: 'affection', target: 'xiaohe', value: 10 },
+      { type: 'affection', target: 'laochen', value: 10 }
+    ],
+    next: 'ch2_end_chapter'
+  },
+
+  ch2_end_chapter: {
+    id: 'ch2_end_chapter',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '夏天过去了。你的田里硕果累累，商路越走越宽。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你揭开了叔父的秘密，也找到了自己在这个世界的位置。', emotion: 'neutral' },
+      { speaker: '旁白', content: '桃源村不再只是一个落脚的地方——它成了你的家。', emotion: 'neutral' },
+      { speaker: '旁白', content: '但秋天将至，更大的挑战还在前方。襄州商会的触角正悄悄伸向终南山……', emotion: 'neutral' },
+      { speaker: '旁白', content: '——第二章·夏耘·完——', emotion: 'neutral' },
+      { speaker: '旁白', content: '【提示】第三章「秋收」将聚焦襄州商会的挑战与村庄建设。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'gold', value: 80 },
+      { type: 'fame', value: 15 },
+      { type: 'unlock', value: 3 }
+    ]
+  }
+}
+
+// ============================================
+// 第三章：秋收 —— 襄州风云
+// ============================================
+export const chapter3Nodes: Record<string, StoryNode> = {
+  ch3_intro: {
+    id: 'ch3_intro',
+    type: 'narration',
+    background: '金秋时节，稻穗低垂，桃源村染上了一层金黄。',
+    dialogue: [
+      { speaker: '旁白', content: '秋天到了。你的田里一片金黄，茶树也长得郁郁葱葱。', emotion: 'neutral' },
+      { speaker: '旁白', content: '桃源村的茶叶在襄州打开了名声，订单越来越多。但树大招风——更大的势力盯上了你们。', emotion: 'neutral' }
+    ],
+    next: 'ch3_xiangzhou_arrives'
+  },
+
+  // ---- 襄州商会来人 ----
+  ch3_xiangzhou_arrives: {
+    id: 'ch3_xiangzhou_arrives',
+    type: 'event',
+    background: '桃源村口——一队华丽的马车缓缓驶入',
+    dialogue: [
+      { speaker: '旁白', content: '这天，一队马车比以往任何时候都华丽。锦旗上绣着"襄州商会"四个大字。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（下马车，环顾四周）这就是桃源村？比我想的小多了。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '我乃襄州商会大掌柜沈万金。听闻桃源茶在襄州卖得不错，特来谈谈合作。', emotion: 'neutral' },
+      { speaker: '李明', content: '（低声对你）小心。沈万金是襄州商界第一号人物，手段比王员外狠多了。', emotion: 'surprised' },
+      { speaker: '沈掌柜', content: '（微笑）李老板也在？正好。我的条件很简单——桃源茶由襄州商会统一收购，价格嘛，可以商量。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '婉拒："我们刚摆脱一个垄断者，不想再入虎口。"',
+        next: 'ch3_refuse_shen',
+        effects: [
+          { type: 'affection', target: 'liming', value: 10 },
+          { type: 'business_rep', value: 10 }
+        ]
+      },
+      {
+        text: '试探："沈掌柜的条件是什么？先说来听听。"',
+        next: 'ch3_probe_shen',
+        effects: [
+          { type: 'business_rep', value: 5 }
+        ]
+      },
+      {
+        text: '拉拢李明商量对策，暂不表态',
+        next: 'ch3_confer_with_liming',
+        effects: [
+          { type: 'affection', target: 'liming', value: 15 }
+        ]
+      }
+    ]
+  },
+
+  ch3_refuse_shen: {
+    id: 'ch3_refuse_shen',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '沈掌柜', content: '（笑容不变，但眼神冷了）年轻人有志气。不过你大概不知道——襄州城的茶叶市集，是由我们商会管的。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '你的茶想在襄州卖，就得进我们的市集。进了市集，就得守我们的规矩。', emotion: 'neutral' },
+      { speaker: '', content: '那我们可以不进襄州市集。天下之大，总有别的销路。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（轻笑）好，我等着看。不过提醒你——襄州商会的触角，比你想象的远。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'business_rep', value: 10 }
+    ],
+    next: 'ch3_shen_counter'
+  },
+
+  ch3_probe_shen: {
+    id: 'ch3_probe_shen',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '沈掌柜', content: '（展开一份契约）桃源茶全部由襄州商会收购，每斤按市价八成。但——襄州所有茶铺只卖你们的茶，销路我们保证。', emotion: 'neutral' },
+      { speaker: '', content: '（细看契约）八成市价……也就是说，赚多赚少还是你们说了算。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '但稳定。没有风险，没有截货，没有价格战。你只需要种茶，剩下的我们来做。', emotion: 'neutral' },
+      { speaker: '旁白', content: '条件看起来诱人——但你知道，这是另一种形式的垄断。', emotion: 'neutral' }
+    ],
+    next: 'ch3_shen_counter'
+  },
+
+  ch3_confer_with_liming: {
+    id: 'ch3_confer_with_liming',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '（对沈掌柜）容我们商量商量。沈掌柜远道而来，先在村里歇歇。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你拉着李明到了茶亭后头。', emotion: 'neutral' },
+      { speaker: '李明', content: '（神色紧张）沈万金不好惹。襄州商会下面有镖局、码头、市集，连官府都要给他们面子。', emotion: 'neutral' },
+      { speaker: '李明', content: '但他有个弱点——商会内部不是铁板一块。襄州商会分三派：沈万金的市集派、陆家的水运派、还有钱庄的周先生。', emotion: 'neutral' },
+      { speaker: '', content: '三派？那我们也许可以……分而治之。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'liming', value: 15 },
+      { type: 'skill', target: 'strategy', value: 1 }
+    ],
+    next: 'ch3_shen_counter'
+  },
+
+  // ---- 沈万金的反击 ----
+  ch3_shen_counter: {
+    id: 'ch3_shen_counter',
+    type: 'event',
+    background: '襄州茶市——告示板前围满了人',
+    dialogue: [
+      { speaker: '旁白', content: '你的态度让沈万金很不满意。三天后，襄州商会发布了一条新规。', emotion: 'neutral' },
+      { speaker: '旁白', content: '「凡非襄州商会成员之茶叶，入襄州城每斤加收五文"品质检验费"。」', emotion: 'neutral' },
+      { speaker: '张四方', content: '（气喘吁吁）不好了！我们的茶在襄州城门口被扣了，要交钱才让进！', emotion: 'angry' },
+      { speaker: '李明', content: '五文一斤……我们每斤茶利润才十五文，这不是要我们的命吗？', emotion: 'angry' },
+      { speaker: '旁白', content: '沈万金这是在逼你——要么加入他的体系，要么被他挤出襄州市场。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '联合陆家水运派，绕开市集走水路直销京城',
+        next: 'ch3_ally_lu',
+        effects: [
+          { type: 'gold', value: -100 },
+          { type: 'business_rep', value: 15 }
+        ]
+      },
+      {
+        text: '找周先生融资，用资本对抗沈万金',
+        next: 'ch3_ally_zhou',
+        effects: [
+          { type: 'business_rep', value: 10 }
+        ]
+      },
+      {
+        text: '直接与沈万金谈判，争取更好的条件',
+        next: 'ch3_negotiate_shen',
+        effects: [
+          { type: 'affection', target: 'liming', value: -5 }
+        ]
+      }
+    ]
+  },
+
+  // ---- 联合陆家 ----
+  ch3_ally_lu: {
+    id: 'ch3_ally_lu',
+    type: 'dialogue',
+    background: '襄州码头——陆家船队的桅杆如林',
+    dialogue: [
+      { speaker: '旁白', content: '你和李明来到襄州码头。陆家是襄州水运的龙头，与沈万金的市集派素来不和。', emotion: 'neutral' },
+      { speaker: '陆当家', content: '（叼着烟斗）桃源茶？我听说过。沈万金想吞你们的茶，我倒想帮你们——但不是白帮。', emotion: 'neutral' },
+      { speaker: '陆当家', content: '我的船队可以直通京城，沿途不用经过襄州市集。但我有个条件——', emotion: 'neutral' },
+      { speaker: '陆当家', content: '你们在桃源村给我建一个码头仓库。以后不仅茶叶，终南山的药材、粮食，都从我这走。', emotion: 'neutral' },
+      { speaker: '', content: '（思考）仓库要花不少钱，但长远看，这是个好买卖。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '答应陆当家——建仓库，打开水运通道',
+        next: 'ch3_lu_deal',
+        effects: [
+          { type: 'gold', value: -150 },
+          { type: 'business_rep', value: 15 },
+          { type: 'alliance', target: 'ludangjia', value: 1 }
+        ]
+      },
+      {
+        text: '讨价还价：仓库可以建，但水运费要给我们优惠',
+        next: 'ch3_lu_bargain',
+        effects: [
+          { type: 'business_rep', value: 10 }
+        ]
+      }
+    ]
+  },
+
+  ch3_lu_deal: {
+    id: 'ch3_lu_deal',
+    type: 'narration',
+    dialogue: [
+      { speaker: '陆当家', content: '（哈哈大笑）爽快！我最烦沈万金那种拐弯抹角的人。你这书生，够意思！', emotion: 'happy' },
+      { speaker: '旁白', content: '陆家船队开始帮你们运茶。桃源茶经水路直送京城，避开了襄州市集的盘剥。', emotion: 'neutral' },
+      { speaker: '旁白', content: '消息传开，沈万金气得摔了三个茶杯。但水运是陆家的地盘，他也奈何不得。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'alliance', target: 'ludangjia', value: 1 },
+      { type: 'market_share', value: 10 },
+      { type: 'fame', value: 10 },
+      { type: 'skill', target: 'logistics', value: 1 }
+    ],
+    next: 'ch3_crisis_climax'
+  },
+
+  ch3_lu_bargain: {
+    id: 'ch3_lu_bargain',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '仓库可以建。但我们是种茶的，不是开镖局的。水运费按市价七折，如何？', emotion: 'neutral' },
+      { speaker: '陆当家', content: '（眯眼）八折。不能再低了。', emotion: 'neutral' },
+      { speaker: '', content: '成交。另外，如果沈万金的人来码头找麻烦——', emotion: 'neutral' },
+      { speaker: '陆当家', content: '（冷笑）让他来。我陆家的码头，他沈万金的人还没踏进来过。', emotion: 'angry' }
+    ],
+    onEnter: [
+      { type: 'alliance', target: 'ludangjia', value: 1 },
+      { type: 'market_share', value: 8 },
+      { type: 'gold', value: -100 }
+    ],
+    next: 'ch3_crisis_climax'
+  },
+
+  // ---- 联合周先生 ----
+  ch3_ally_zhou: {
+    id: 'ch3_ally_zhou',
+    type: 'dialogue',
+    background: '襄州城——周氏钱庄，算盘声不绝于耳',
+    dialogue: [
+      { speaker: '旁白', content: '你找到周先生。他是襄州最大的钱庄老板，也是商会里唯一能制衡沈万金的人。', emotion: 'neutral' },
+      { speaker: '周先生', content: '（拨弄着算盘）你想让我出钱帮你对抗沈万金？我是个生意人，不做亏本买卖。', emotion: 'neutral' },
+      { speaker: '', content: '不是让您亏钱。桃源茶品质独一无二，销路只会越来越好。您投资我们，每年分红。', emotion: 'neutral' },
+      { speaker: '周先生', content: '（算盘珠子噼啪响了一阵）……你的市场份额现在多少？', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '实话实说：目前只占终南三县的两成。但增长很快。',
+        next: 'ch3_zhou_invest',
+        effects: [
+          { type: 'business_rep', value: 5 }
+        ]
+      },
+      {
+        text: '夸大其词：我们马上要拿下襄州一半的茶叶市场。',
+        next: 'ch3_zhou_invest',
+        effects: [
+          { type: 'business_rep', value: -5 }
+        ]
+      }
+    ]
+  },
+
+  ch3_zhou_invest: {
+    id: 'ch3_zhou_invest',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '周先生', content: '（放下算盘）我投三百两。占你们茶社两成股。另外——商会里，我帮你牵制沈万金。', emotion: 'neutral' },
+      { speaker: '周先生', content: '但有个条件：如果你们三年内不能占领襄州四成市场，我撤资。', emotion: 'neutral' },
+      { speaker: '', content: '（郑重地）一言为定。', emotion: 'neutral' },
+      { speaker: '旁白', content: '有了周先生的钱和人脉，你在襄州商会里终于有了话语权。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'alliance', target: 'zhouxiansheng', value: 1 },
+      { type: 'gold', value: 300 },
+      { type: 'business_rep', value: 15 },
+      { type: 'market_share', value: 5 }
+    ],
+    next: 'ch3_crisis_climax'
+  },
+
+  // ---- 直接谈判 ----
+  ch3_negotiate_shen: {
+    id: 'ch3_negotiate_shen',
+    type: 'dialogue',
+    background: '襄州商会——沈万金的会客室，陈设奢华',
+    dialogue: [
+      { speaker: '', content: '沈掌柜，你的"品质检验费"是在逼我们鱼死网破。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（悠闲地喝茶）鱼死网破？你们有几条鱼？', emotion: 'neutral' },
+      { speaker: '', content: '我们背后有终南山三十户茶农。还有李明、张四方、马刀头。真要闹大了，对谁都不好。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（沉默）……那你说，怎么个"好"法？', emotion: 'neutral' },
+      { speaker: '', content: '取消检验费。桃源茶社加入襄州商会——但不是作为附庸，而是作为独立成员。有投票权，有分红权。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（长考良久）……有意思。你是我见过的第一个，敢在我面前讨价还价还讨赢了的年轻人。', emotion: 'surprised' }
+    ],
+    onEnter: [
+      { type: 'business_rep', value: 20 },
+      { type: 'fame', value: 10 }
+    ],
+    next: 'ch3_crisis_climax'
+  },
+
+  // ---- 危机高潮：沈万金的最后手段 ----
+  ch3_crisis_climax: {
+    id: 'ch3_crisis_climax',
+    type: 'event',
+    background: '桃源村——深夜里，火光冲天',
+    dialogue: [
+      { speaker: '旁白', content: '你以为事情告一段落。但沈万金不是王员外——他更狠，更不择手段。', emotion: 'neutral' },
+      { speaker: '旁白', content: '一个深夜，村口的喊叫声把你惊醒——', emotion: 'neutral' },
+      { speaker: '小荷', content: '（惊恐地跑过来）不好了！晒茶场着火了！', emotion: 'surprised' },
+      { speaker: '旁白', content: '你冲到晒茶场——火光映红了半边天。三百斤准备出货的秋茶，全部化为灰烬。', emotion: 'neutral' },
+      { speaker: '马刀头', content: '（握紧拳头）我在火场附近看到了脚印——是城里人的靴子印。沈万金干的！', emotion: 'angry' },
+      { speaker: '老陈', content: '（颤抖着）这……这是要我们的命啊。', emotion: 'sad' }
+    ],
+    choices: [
+      {
+        text: '召集所有人，直接去襄州找沈万金算账',
+        next: 'ch3_confront_shen',
+        effects: [
+          { type: 'affection', target: 'madaotou', value: 20 },
+          { type: 'fame', value: 15 },
+          { type: 'stamina', value: -20 }
+        ]
+      },
+      {
+        text: '报官——这是纵火，是刑事大案',
+        next: 'ch3_report_fire',
+        effects: [
+          { type: 'fame', value: 10 },
+          { type: 'gold', value: -80 }
+        ]
+      },
+      {
+        text: '先灭火救人，再从长计议',
+        next: 'ch3_put_out_fire',
+        effects: [
+          { type: 'affection', target: 'laochen', value: 15 },
+          { type: 'affection', target: 'xiaohe', value: 10 },
+          { type: 'stamina', value: -15 }
+        ]
+      }
+    ]
+  },
+
+  ch3_confront_shen: {
+    id: 'ch3_confront_shen',
+    type: 'dialogue',
+    background: '襄州商会——大堂',
+    dialogue: [
+      { speaker: '旁白', content: '你带着马刀头、李明和一群愤怒的村民，直闯襄州商会。', emotion: 'neutral' },
+      { speaker: '', content: '（把烧焦的茶叶残渣拍在沈万金的桌上）沈掌柜，认得这个吗？', emotion: 'angry' },
+      { speaker: '沈掌柜', content: '（面不改色）这是什么？你们村自己走了水，来找我做什么？', emotion: 'neutral' },
+      { speaker: '马刀头', content: '放屁！火场有你的人的脚印！', emotion: 'angry' },
+      { speaker: '周先生', content: '（从后面走出来）沈兄，适可而止。真要闹到官府，对商会名声不好。', emotion: 'neutral' },
+      { speaker: '沈掌柜', content: '（见周先生出面，脸色微变）……周兄，你站他们那边？', emotion: 'surprised' },
+      { speaker: '周先生', content: '我站道理这边。烧人货物，不是生意人该干的事。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'madaotou', value: 15 },
+      { type: 'fame', value: 20 },
+      { type: 'business_rep', value: 15 }
+    ],
+    next: 'ch3_shen_falls'
+  },
+
+  ch3_report_fire: {
+    id: 'ch3_report_fire',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你连夜写了状子，附上马刀头收集的脚印拓片和村民证言，送到襄州府衙。', emotion: 'neutral' },
+      { speaker: '旁白', content: '襄州知府看了状子，又听了周先生的证词——最终下令彻查。', emotion: 'neutral' },
+      { speaker: '旁白', content: '查案结果直指沈万金手下的一个管事。虽然沈万金本人推脱干净，但商会声誉一落千丈。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 15 },
+      { type: 'business_rep', value: 10 }
+    ],
+    next: 'ch3_shen_falls'
+  },
+
+  ch3_put_out_fire: {
+    id: 'ch3_put_out_fire',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你没有急着去算账。你先组织村民灭火，救下了旁边的仓库。', emotion: 'neutral' },
+      { speaker: '旁白', content: '虽然三百斤茶叶没了，但仓库里还存着一百斤，总算没全军覆没。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（看着烧焦的茶场，叹气）你做得对。茶叶没了还能再种，人伤了就没了。', emotion: 'neutral' },
+      { speaker: '旁白', content: '但你心里清楚——这件事不会就这么算了。你开始暗中收集沈万金更多的罪证。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'laochen', value: 20 },
+      { type: 'skill', target: 'patience', value: 1 },
+      { type: 'gold', value: -50 }
+    ],
+    next: 'ch3_shen_falls'
+  },
+
+  // ---- 沈万金的结局 ----
+  ch3_shen_falls: {
+    id: 'ch3_shen_falls',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '纵火事件成了压垮沈万金的最后一根稻草。', emotion: 'neutral' },
+      { speaker: '旁白', content: '商会内部，周先生联合陆当家发起弹劾。沈万金的市集派众叛亲离。', emotion: 'neutral' },
+      { speaker: '旁白', content: '最终，沈万金辞去了襄州商会会长之职。桃源茶社以独立成员身份加入商会，获得了公平的市集准入权。', emotion: 'neutral' },
+      { speaker: '李明', content: '（感慨万千）我爹在天之灵要是知道……王员外倒了，沈万金也倒了……', emotion: 'neutral' },
+      { speaker: '', content: '这不是结束。桃源茶的路，才刚刚开始。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'business_rep', value: 30 },
+      { type: 'market_share', value: 20 },
+      { type: 'fame', value: 25 },
+      { type: 'gold', value: 200 }
+    ],
+    next: 'ch3_village_building'
+  },
+
+  // ---- 村庄建设 ----
+  ch3_village_building: {
+    id: 'ch3_village_building',
+    type: 'system',
+    background: '桃源村——到处是繁忙的建设景象',
+    dialogue: [
+      { speaker: '旁白', content: '商战告一段落。但你不想止步于此——你要让桃源村变得更好。', emotion: 'neutral' },
+      { speaker: '旁白', content: '村民们聚在一起，讨论村庄的未来。', emotion: 'neutral' },
+      { speaker: '老陈', content: '村子这些年穷怕了。现在有了茶叶的收入，咱们该修修路了。', emotion: 'happy' },
+      { speaker: '小荷', content: '还有学堂！村里的孩子都该识字。', emotion: 'happy' },
+      { speaker: '云娘', content: '我可以扩大药铺，教大家种草药——不光卖茶，还能卖药。', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '优先修路——打通商道，才能做大生意',
+        next: 'ch3_build_road',
+        effects: [
+          { type: 'gold', value: -200 },
+          { type: 'business_rep', value: 10 }
+        ]
+      },
+      {
+        text: '优先办学——让孩子们读书识字',
+        next: 'ch3_build_school',
+        effects: [
+          { type: 'gold', value: -100 },
+          { type: 'affection', target: 'xiaohe', value: 20 },
+          { type: 'fame', value: 10 }
+        ]
+      },
+      {
+        text: '全面发展——修路、办学、扩建药铺一起干',
+        next: 'ch3_build_all',
+        effects: [
+          { type: 'gold', value: -350 },
+          { type: 'fame', value: 20 },
+          { type: 'business_rep', value: 10 }
+        ]
+      }
+    ]
+  },
+
+  ch3_build_road: {
+    id: 'ch3_build_road',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你拿出积蓄，带着村民开始修路。从桃源村到襄州的官道被拓宽夯实，马车可以畅通无阻。', emotion: 'neutral' },
+      { speaker: '旁白', content: '路修好后，往来的商贩多了起来。桃源村从一个偏僻山村，变成了终南山下的一个热闹集市。', emotion: 'neutral' },
+      { speaker: '马刀头', content: '（赶着马车）这下好了！以前一趟货要两天，现在半天就到！', emotion: 'happy' }
+    ],
+    onEnter: [
+      { type: 'business_rep', value: 15 },
+      { type: 'market_share', value: 10 }
+    ],
+    next: 'ch3_autumn_harvest'
+  },
+
+  ch3_build_school: {
+    id: 'ch3_build_school',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '旁白', content: '村东头的老仓库被改成了学堂。你拿出自己不多的藏书，又从城里买了几本蒙学读本。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（站在讲台上，紧张又兴奋）我……我真的可以教大家认字吗？', emotion: 'surprised' },
+      { speaker: '', content: '（微笑）你已经认了很多字了。而且——教别人，自己也能学得更深。', emotion: 'neutral' },
+      { speaker: '旁白', content: '学堂开课那天，全村的孩子都来了。琅琅书声在桃源村响起——这是这个山村从未有过的声音。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'affection', target: 'xiaohe', value: 25 },
+      { type: 'fame', value: 15 },
+      { type: 'skill', target: 'education', value: 1 }
+    ],
+    next: 'ch3_autumn_harvest'
+  },
+
+  ch3_build_all: {
+    id: 'ch3_build_all',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你做了一个大胆的决定——修路、办学、扩建药铺，三件事一起干。', emotion: 'neutral' },
+      { speaker: '旁白', content: '积蓄几乎花光了。但桃源村的面貌也彻底改变：新路、新学堂、新药铺，还有络绎不绝的商贩。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（看着焕然一新的村子，老泪纵横）我这辈子都没想过，桃源村能有今天。', emotion: 'happy' },
+      { speaker: '旁白', content: '你花光了积蓄，但赢得了比金钱更宝贵的东西——人心。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 25 },
+      { type: 'business_rep', value: 15 },
+      { type: 'affection', target: 'laochen', value: 20 },
+      { type: 'affection', target: 'xiaohe', value: 15 }
+    ],
+    next: 'ch3_autumn_harvest'
+  },
+
+  // ---- 秋收祭 ----
+  ch3_autumn_harvest: {
+    id: 'ch3_autumn_harvest',
+    type: 'narration',
+    background: '桃源村——晒谷场上摆满了丰收的果实',
+    dialogue: [
+      { speaker: '旁白', content: '深秋，桃源村迎来了有史以来最盛大的秋收祭。', emotion: 'neutral' },
+      { speaker: '旁白', content: '田里的稻子堆成了小山，茶篓里的茶叶散发着清香。村民们在晒谷场上摆起了百家宴。', emotion: 'neutral' },
+      { speaker: '云娘', content: '（端着一碗药膳汤）书生，这碗当归鸡汤是专门给你熬的。补补身子。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（捧着一卷自己写的字）书生哥，这是我写的——"桃源春暖"。送给你。', emotion: 'happy' },
+      { speaker: '马刀头', content: '（举起酒碗）来！为桃源村，为书生——干！', emotion: 'happy' },
+      { speaker: '旁白', content: '觥筹交错，笑语喧天。你坐在人群中，望着这一切——从落榜书生到今天，恍如隔世。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'stamina', value: 30 },
+      { type: 'affection', target: 'xiaohe', value: 10 },
+      { type: 'affection', target: 'yunniang', value: 10 },
+      { type: 'affection', target: 'laochen', value: 10 },
+      { type: 'gold', value: 50 }
+    ],
+    next: 'ch3_end_chapter'
+  },
+
+  ch3_end_chapter: {
+    id: 'ch3_end_chapter',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '秋天结束了。但这不是终点。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你从一介落榜书生，变成了桃源村的主心骨。你的茶叶行销京城，你的朋友遍布三县，你的村庄焕然一新。', emotion: 'neutral' },
+      { speaker: '旁白', content: '冬天将至。而你的故事——还差最后一个抉择。', emotion: 'neutral' },
+      { speaker: '旁白', content: '京城来了一封信。信上说，今年科举加开恩科，陛下广纳贤才。你的同窗好友在信末写道——', emotion: 'neutral' },
+      { speaker: '旁白', content: '"兄台，十年寒窗，难道就此荒废？速回京城，你我同赴春闱！"', emotion: 'neutral' },
+      { speaker: '旁白', content: '——第三章·秋收·完——', emotion: 'neutral' },
+      { speaker: '旁白', content: '【最终章·归去来兮】即将开启——你的选择将决定故事的结局。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'gold', value: 100 },
+      { type: 'fame', value: 20 },
+      { type: 'unlock', value: 4 }
+    ]
+  }
+}
+
+// ============================================
+// 尾章：归去来兮 —— 三种结局
+// ============================================
+export const epilogueNodes: Record<string, StoryNode> = {
+  epilogue_intro: {
+    id: 'epilogue_intro',
+    type: 'narration',
+    background: '草庐内——一封京城的来信摊在桌上',
+    dialogue: [
+      { speaker: '旁白', content: '冬天来了。终南山下了第一场雪，桃源村披上了一层银白。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你在草庐里，望着桌上那封京城来信，久久不语。', emotion: 'neutral' },
+      { speaker: '', content: '（自言自语）回去……还是不回去？', emotion: 'neutral' },
+      { speaker: '旁白', content: '这一年，你在这片土地上流了汗、交了朋友、打倒了两个豪强、建起了一个新桃源。', emotion: 'neutral' },
+      { speaker: '旁白', content: '但心底深处，那个关于科举的梦，真的熄灭了吗？', emotion: 'neutral' }
+    ],
+    choices: [
+      {
+        text: '回京城赶考——十年寒窗不能白费',
+        next: 'epilogue_exam',
+        effects: [
+          { type: 'fame', value: 5 }
+        ]
+      },
+      {
+        text: '留在桃源村——这里已经是我的家',
+        next: 'epilogue_stay',
+        effects: [
+          { type: 'affection', target: 'laochen', value: 15 },
+          { type: 'affection', target: 'xiaohe', value: 15 }
+        ]
+      },
+      {
+        text: '两全其美——去赶考，但考完就回来',
+        next: 'epilogue_both',
+        effects: [
+          { type: 'affection', target: 'xiaohe', value: 10 }
+        ]
+      }
+    ]
+  },
+
+  // ---- 结局一：金榜题名 ----
+  epilogue_exam: {
+    id: 'epilogue_exam',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你收拾行囊，告别了桃源村。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（眼眶红了）你……你还会回来吗？', emotion: 'sad' },
+      { speaker: '', content: '（沉默片刻）我不知道。但无论去哪里，桃源村永远在我心里。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你回到了京城。这一次，你不再紧张——田里的风雨你都扛过来了，一场考试又算得了什么？', emotion: 'neutral' }
+    ],
+    next: 'epilogue_exam_result'
+  },
+
+  epilogue_exam_result: {
+    id: 'epilogue_exam_result',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '放榜那天，你的名字赫然在列——二甲进士出身。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你的同年们都说你是"大器晚成"。只有你自己知道——是桃源村教会了你什么叫踏实。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你被外放为知县。在选择任地时，你毫不犹豫地选了——终南县。', emotion: 'neutral' },
+      { speaker: '旁白', content: '一年后，你以知县身份重返桃源村。村口的新路、热闹的集市、琅琅的读书声——', emotion: 'neutral' },
+      { speaker: '旁白', content: '小荷站在学堂门口，看到你，愣了很久，然后笑了。', emotion: 'neutral' },
+      { speaker: '小荷', content: '我就知道你会回来。', emotion: 'happy' },
+      { speaker: '旁白', content: '——结局一：金榜题名·归乡——', emotion: 'neutral' },
+      { speaker: '旁白', content: '你既实现了科举梦，也守住了桃源村。功名与田园，本不必二选其一。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 50 },
+      { type: 'gold', value: 300 },
+      { type: 'affection', target: 'xiaohe', value: 20 }
+    ],
+    next: 'epilogue_credits'
+  },
+
+  // ---- 结局二：桃源守望者 ----
+  epilogue_stay: {
+    id: 'epilogue_stay',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '（把信折好，放进抽屉）不回去了。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你走出草庐，雪后的桃源村格外宁静。烟囱冒着炊烟，学堂里传来读书声。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（在田埂上堆雪人，看到你）书生哥！你怎么出来了，外面冷！', emotion: 'surprised' },
+      { speaker: '', content: '（微笑）不冷。我只是想看看——看看这一切。', emotion: 'neutral' },
+      { speaker: '小荷', content: '这一切？', emotion: 'neutral' },
+      { speaker: '', content: '嗯。我们的村子。', emotion: 'neutral' }
+    ],
+    next: 'epilogue_stay_years'
+  },
+
+  epilogue_stay_years: {
+    id: 'epilogue_stay_years',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '五年后——', emotion: 'neutral' },
+      { speaker: '旁白', content: '桃源村已经不再是当初那个偏僻山村。茶园遍布山腰，商队络绎不绝，学堂里走出了三个秀才。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你和云娘合作，把终南山药材也做成了品牌。老陈退了休，每天坐在村口喝茶晒太阳。', emotion: 'neutral' },
+      { speaker: '旁白', content: '小荷成了远近闻名的女先生。村里人都说——当初那个落榜书生，比十个状元都管用。', emotion: 'neutral' },
+      { speaker: '老陈', content: '（端着茶）书生啊，你说当年你要是考上了，这桃源村可怎么办？', emotion: 'happy' },
+      { speaker: '', content: '（笑）也许一切都是最好的安排。', emotion: 'happy' },
+      { speaker: '旁白', content: '——结局二：桃源守望者——', emotion: 'neutral' },
+      { speaker: '旁白', content: '你没有金榜题名，但你建起了一个比功名更长久的东西——一个真正的世外桃源。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 40 },
+      { type: 'business_rep', value: 30 },
+      { type: 'affection', target: 'xiaohe', value: 30 },
+      { type: 'affection', target: 'laochen', value: 20 },
+      { type: 'gold', value: 500 }
+    ],
+    next: 'epilogue_credits'
+  },
+
+  // ---- 结局三：两全其美 ----
+  epilogue_both: {
+    id: 'epilogue_both',
+    type: 'dialogue',
+    dialogue: [
+      { speaker: '', content: '（收起信）我去赶考。但考完之后——不管结果如何——我都会回来。', emotion: 'neutral' },
+      { speaker: '小荷', content: '真的？', emotion: 'surprised' },
+      { speaker: '', content: '（认真地看着她）我保证。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你去了京城。春闱之后，你中了三甲同进士出身。同窗劝你留在京城谋个官职，你摇了摇头。', emotion: 'neutral' }
+    ],
+    next: 'epilogue_both_return'
+  },
+
+  epilogue_both_return: {
+    id: 'epilogue_both_return',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '你带着功名回来了。但你向朝廷请了终南县主簿的职位——一个小小的文官，但可以留在桃源村。', emotion: 'neutral' },
+      { speaker: '旁白', content: '此后的日子里，你一面处理县衙文书，一面打理茶社生意。', emotion: 'neutral' },
+      { speaker: '旁白', content: '你成了远近闻名的"书生官"——既是朝廷命官，也是茶社老板，更是桃源村的守护者。', emotion: 'neutral' },
+      { speaker: '旁白', content: '每年春天，你都会给学堂的孩子们讲京城的故事。孩子们围着你，眼睛亮晶晶的。', emotion: 'neutral' },
+      { speaker: '小荷', content: '（笑着）你说的京城那么好，为什么还要回来？', emotion: 'neutral' },
+      { speaker: '', content: '因为京城没有你们。', emotion: 'neutral' },
+      { speaker: '旁白', content: '——结局三：两全其美——', emotion: 'neutral' },
+      { speaker: '旁白', content: '你证明了功名与田园可以兼得。读书不是为了逃离，而是为了更好地守护。', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 45 },
+      { type: 'gold', value: 400 },
+      { type: 'affection', target: 'xiaohe', value: 25 },
+      { type: 'business_rep', value: 20 }
+    ],
+    next: 'epilogue_credits'
+  },
+
+  // ---- 尾声 ----
+  epilogue_credits: {
+    id: 'epilogue_credits',
+    type: 'narration',
+    dialogue: [
+      { speaker: '旁白', content: '—— 归园田居 · 全篇完 ——', emotion: 'neutral' },
+      { speaker: '旁白', content: '感谢你陪伴书生走过这段旅程。', emotion: 'neutral' },
+      { speaker: '旁白', content: '种豆南山下，草盛豆苗稀。晨兴理荒秽，带月荷锄归。', emotion: 'neutral' },
+      { speaker: '旁白', content: '道狭草木长，夕露沾我衣。衣沾不足惜，但使愿无违。', emotion: 'neutral' },
+      { speaker: '旁白', content: '——陶渊明《归园田居·其三》', emotion: 'neutral' },
+      { speaker: '旁白', content: '【游戏通关！你可以继续在桃源村经营你的田地和商路。】', emotion: 'neutral' }
+    ],
+    onEnter: [
+      { type: 'fame', value: 50 },
+      { type: 'gold', value: 200 }
+    ]
+  }
+}
+
+// ============================================
 // 章节定义
 // ============================================
 export const chapters: Chapter[] = [
@@ -1040,5 +2076,36 @@ export const chapters: Chapter[] = [
     subtitle: '春耕',
     startNode: 'ch1_intro',
     description: '春天来了，麻烦也来了'
+  },
+  {
+    id: 'chapter2',
+    title: '第二章',
+    subtitle: '夏耘',
+    startNode: 'ch2_intro',
+    description: '村庄的秘密与情谊'
+  },
+  {
+    id: 'chapter3',
+    title: '第三章',
+    subtitle: '秋收',
+    startNode: 'ch3_intro',
+    description: '襄州风云与村庄建设'
+  },
+  {
+    id: 'epilogue',
+    title: '尾章',
+    subtitle: '归去来兮',
+    startNode: 'epilogue_intro',
+    description: '三种结局，归于何处'
   }
 ]
+
+// ============================================
+// 合并所有故事节点
+// ============================================
+export const storyNodes: Record<string, StoryNode> = {
+  ...prologueAndCh1Nodes,
+  ...chapter2Nodes,
+  ...chapter3Nodes,
+  ...epilogueNodes
+}
