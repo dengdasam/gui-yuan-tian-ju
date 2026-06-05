@@ -4,7 +4,8 @@ import type {
   GameState, Player, GameDate, FarmLand, NPC, MarketPrice,
   Competitor, TimeOfDay, Weather, Season, Crop, InventoryItem,
   ChamberVote, ChamberVoter, PriceWar, PriceWarParticipant,
-  CargoEvent, HostileAction, SeasonalEvent, MiniGameSession, ProcessingState
+  CargoEvent, HostileAction, SeasonalEvent, MiniGameSession,
+  ProcessingState, ShopState, ShopItemEffect
 } from '../types'
 import { storyNodes, chapters } from '../data/story'
 import { npcs as initialNPCs } from '../data/npcs'
@@ -13,6 +14,7 @@ import { competitors as initialCompetitors } from '../data/competitors'
 import { processingRecipes } from '../data/processing'
 import { seasonalEvents } from '../data/seasonal-events'
 import { getActiveSeasonalEvent } from '../data/seasonal-events'
+import { shopItems as allShopItems, getSeasonalShopItems, getLimitedShopItems, isItemUnlocked } from '../data/shop'
 
 export const useGameStore = defineStore('game', () => {
   // ========== 状态 ==========
@@ -100,6 +102,15 @@ export const useGameStore = defineStore('game', () => {
     unlockedRecipes: [],
   })
 
+  // 商店系统
+  const shopState = ref<ShopState>({
+    reputation: 0,
+    totalSpent: 0,
+    discountLevel: 0,
+    dailyDeals: [],
+    lastRefreshDay: 0,
+  })
+
   // ========== 计算属性 ==========
   const currentStoryNode = computed(() => storyNodes[currentNode.value] || null)
 
@@ -154,8 +165,16 @@ export const useGameStore = defineStore('game', () => {
       player.value.stamina + 10
     )
 
-    // 作物生长
+    // 作物生长 + 自动浇水
     farmLands.value.forEach(land => {
+      // 自动浇水消耗
+      if (land.autoWaterDays > 0) {
+        land.watered = true
+        land.autoWaterDays--
+        if (land.autoWaterDays === 0) {
+          addLog(`第${land.id + 1}块田的自动浇水器已耗尽。`, 'system')
+        }
+      }
       if (land.crop && !land.ready) {
         const crop = crops.find(c => c.id === land.crop)
         if (crop) {
@@ -180,6 +199,9 @@ export const useGameStore = defineStore('game', () => {
 
     // 季节事件检查
     checkSeasonalEvent()
+
+    // 商店每日刷新
+    refreshShop()
 
     // 章节过渡触发
     checkPendingChapterStart()
@@ -256,21 +278,29 @@ export const useGameStore = defineStore('game', () => {
     const mp = market.value.find(m => m.cropId === land.crop)
     const price = mp ? mp.price : crop.baseSellPrice
 
+    // 应用产量加成
+    let actualYield = crop.yield
+    if (land.yieldBoost > 0) {
+      actualYield = Math.floor(crop.yield * (1 + land.yieldBoost / 100))
+      addLog(`金镰刀加成！产量 +${land.yieldBoost}%`, 'system')
+      land.yieldBoost = 0
+    }
+
     const existItem = player.value.inventory.find(i => i.itemId === land.crop)
     if (existItem) {
-      existItem.quantity += crop.yield
+      existItem.quantity += actualYield
     } else {
       player.value.inventory.push({
         itemId: land.crop,
         name: crop.name,
         type: 'crop',
-        quantity: crop.yield,
+        quantity: actualYield,
         description: crop.description,
         icon: crop.icon
       })
     }
 
-    addLog(`收获了【${crop.name}】×${crop.yield}，当前市价 ${price}文/斤。`, 'action')
+    addLog(`收获了【${crop.name}】×${actualYield}，当前市价 ${price}文/斤。`, 'action')
 
     land.crop = null
     land.ready = false
@@ -303,7 +333,9 @@ export const useGameStore = defineStore('game', () => {
       watered: false,
       fertilized: false,
       quality: 50,
-      ready: false
+      ready: false,
+      autoWaterDays: 0,
+      yieldBoost: 0
     })
     addLog(`开垦了第${newId + 1}块田地！花费${cost}文铜钱。`, 'action')
     return true
@@ -355,7 +387,226 @@ export const useGameStore = defineStore('game', () => {
     }
 
     addLog(`购买了【${crop.name}种子】×${quantity}，花费 ${totalCost} 文。`, 'action')
+    updateShopReputation(totalCost)
     return true
+  }
+
+  // ---- 商店系统 ----
+
+  /** 购买商店物品 */
+  function buyShopItem(shopItemId: string, quantity: number = 1) {
+    const item = allShopItems.find(i => i.id === shopItemId)
+    if (!item) return false
+
+    // 检查库存
+    if (item.stock !== -1 && item.stock < quantity) {
+      addLog('库存不足。', 'action')
+      return false
+    }
+
+    // 检查解锁
+    if (!isItemUnlocked(item, shopState.value.reputation, player.value.farmLevel)) {
+      addLog('暂未满足购买条件。', 'action')
+      return false
+    }
+
+    // 计算价格（含折扣和特价）
+    let unitPrice = item.basePrice
+    const deal = shopState.value.dailyDeals.find(d => d.itemId === shopItemId)
+    if (deal) {
+      unitPrice = Math.floor(item.basePrice * (1 - deal.discount / 100))
+    }
+    // 声望折扣
+    const repDiscount = shopState.value.discountLevel * 3 // 每级3%
+    unitPrice = Math.floor(unitPrice * (1 - repDiscount / 100))
+
+    const totalCost = unitPrice * quantity
+    if (player.value.gold < totalCost) {
+      addLog('铜钱不够。', 'action')
+      return false
+    }
+
+    // 扣钱减库存
+    player.value.gold -= totalCost
+    if (item.stock !== -1) item.stock -= quantity
+
+    // 根据不同类别处理
+    if (item.category === '种子') {
+      // 找到对应作物
+      const cropId = shopItemId.replace('shop_', '').replace('_seed', '')
+      const crop = crops.find(c => c.id === cropId)
+      if (crop) {
+        const seedKey = `${cropId}_seed`
+        const existItem = player.value.inventory.find(i => i.itemId === seedKey)
+        if (existItem) {
+          existItem.quantity += quantity
+        } else {
+          player.value.inventory.push({
+            itemId: seedKey, name: `${crop.name}种子`, type: 'seed',
+            quantity, description: `${crop.name}的种子`, icon: '🌰'
+          })
+        }
+      }
+    } else {
+      // 工具/肥料/杂货 → 以原始 shopItemId 存入背包
+      const existItem = player.value.inventory.find(i => i.itemId === shopItemId)
+      if (existItem) {
+        existItem.quantity += quantity
+      } else {
+        player.value.inventory.push({
+          itemId: shopItemId, name: item.name,
+          type: 'tool' as const, quantity,
+          description: item.description, icon: item.icon
+        })
+      }
+    }
+
+    addLog(`购买了【${item.name}】×${quantity}，花费 ${totalCost} 文。`, 'action')
+    updateShopReputation(totalCost)
+    return true
+  }
+
+  /** 使用商店物品 */
+  function useShopItem(shopItemId: string, targetLandId?: number): boolean {
+    const invItem = player.value.inventory.find(i => i.itemId === shopItemId)
+    if (!invItem || invItem.quantity < 1) {
+      addLog('背包中没有该物品。', 'action')
+      return false
+    }
+
+    const shopItem = allShopItems.find(i => i.id === shopItemId)
+    if (!shopItem || !shopItem.effect) {
+      addLog('该物品无法直接使用。', 'action')
+      return false
+    }
+
+    const effect = shopItem.effect
+
+    switch (effect.type) {
+      case 'fertilize':
+        // 加速生长：选中的田或第一块有作物的田
+        let targetLand: FarmLand | undefined
+        if (targetLandId !== undefined) {
+          targetLand = farmLands.value.find(l => l.id === targetLandId)
+        } else {
+          targetLand = farmLands.value.find(l => l.crop && !l.ready)
+        }
+        if (!targetLand || !targetLand.crop) {
+          addLog('请选择一块正在生长的田地使用。', 'action')
+          return false
+        }
+        if (targetLand.ready) {
+          addLog('该田作物已成熟，无需施肥。', 'action')
+          return false
+        }
+        // 加速生长：减少 plantedDay
+        if (effect.value > 0) {
+          targetLand.plantedDay -= effect.value
+          addLog(`施用【${shopItem.name}】，作物生长加速${effect.value}天！`, 'action')
+        }
+        // 堆肥加品质
+        if (effect.value === 0) {
+          targetLand.quality = Math.min(100, targetLand.quality + 10)
+          addLog(`施用【${shopItem.name}】，田地品质+10。`, 'action')
+        }
+        targetLand.fertilized = true
+        break
+
+      case 'auto_water':
+        if (targetLandId === undefined) {
+          addLog('请选择一块田地使用自动浇水器。', 'action')
+          return false
+        }
+        const waterLand = farmLands.value.find(l => l.id === targetLandId)
+        if (!waterLand) return false
+        waterLand.autoWaterDays += effect.value
+        addLog(`为第${targetLandId + 1}块田安装了【${shopItem.name}】，自动浇水${effect.value}天。`, 'action')
+        break
+
+      case 'yield_boost':
+        if (targetLandId === undefined) {
+          addLog('请选择一块田地使用金镰刀。', 'action')
+          return false
+        }
+        const boostLand = farmLands.value.find(l => l.id === targetLandId)
+        if (!boostLand || !boostLand.crop) {
+          addLog('该田没有种植作物。', 'action')
+          return false
+        }
+        boostLand.yieldBoost = effect.value
+        addLog(`为第${targetLandId + 1}块田装备了【${shopItem.name}】，收获时产量+${effect.value}%。`, 'action')
+        break
+
+      case 'stamina_restore':
+        player.value.stamina = Math.min(player.value.maxStamina, player.value.stamina + effect.value)
+        addLog(`使用【${shopItem.name}】，体力恢复${effect.value}点。`, 'action')
+        break
+
+      default:
+        return false
+    }
+
+    // 消耗物品
+    invItem.quantity -= 1
+    player.value.inventory = player.value.inventory.filter(i => i.quantity > 0)
+    return true
+  }
+
+  /** 更新商店声望 */
+  function updateShopReputation(amount: number) {
+    shopState.value.totalSpent += amount
+    // 每500文消费 = +1声望
+    const newRep = Math.min(100, Math.floor(shopState.value.totalSpent / 500))
+    if (newRep > shopState.value.reputation) {
+      shopState.value.reputation = newRep
+      shopState.value.discountLevel = Math.floor(newRep / 20)
+      if (shopState.value.discountLevel > 0) {
+        addLog(`商店声望提升至${newRep}，获得${shopState.value.discountLevel * 3}%永久折扣！`, 'system')
+      }
+    }
+  }
+
+  /** 每日刷新商店 */
+  function refreshShop() {
+    if (shopState.value.lastRefreshDay >= totalDays.value) return
+    shopState.value.lastRefreshDay = totalDays.value
+
+    // 刷新库存（有限库存的物品每日补1个，直到maxStock）
+    allShopItems.forEach(item => {
+      if (item.stock !== -1 && item.stock < item.maxStock) {
+        item.stock = Math.min(item.maxStock, item.stock + 1)
+      }
+    })
+
+    // 每日特价：随机选1-3个物品打8-9折，持续2-4天
+    shopState.value.dailyDeals = shopState.value.dailyDeals.filter(d => d.remainingDays > 0)
+    shopState.value.dailyDeals.forEach(d => d.remainingDays--)
+
+    // 有机会新增特价
+    if (Math.random() < 0.4 && shopState.value.dailyDeals.length < 3) {
+      const availableItems = allShopItems.filter(item => {
+        if (!isItemUnlocked(item, shopState.value.reputation, player.value.farmLevel)) return false
+        return !shopState.value.dailyDeals.find(d => d.itemId === item.id)
+      })
+      if (availableItems.length > 0) {
+        const picked = availableItems[Math.floor(Math.random() * availableItems.length)]
+        const discount = 10 + Math.floor(Math.random() * 20) // 10-29%折扣
+        const dur = 2 + Math.floor(Math.random() * 3) // 2-4天
+        shopState.value.dailyDeals.push({ itemId: picked.id, discount, remainingDays: dur })
+      }
+    }
+  }
+
+  /** 获取当前可购买的商店物品 */
+  function getAvailableShopItems() {
+    const season = date.value.season
+    const month = date.value.month
+    const seasonal = getSeasonalShopItems(season)
+    const limited = getLimitedShopItems(month)
+    const all = [...seasonal, ...limited]
+    return all.filter(item =>
+      isItemUnlocked(item, shopState.value.reputation, player.value.farmLevel)
+    )
   }
 
   // ---- NPC 交互 ----
@@ -1151,7 +1402,8 @@ export const useGameStore = defineStore('game', () => {
     }
     date.value = { year: 7, month: 3, day: 1, season: '春', timeOfDay: '清晨', weather: '晴' }
     farmLands.value = Array.from({ length: 3 }, (_, i) => ({
-      id: i, crop: null, plantedDay: 0, watered: false, fertilized: false, quality: 50, ready: false
+      id: i, crop: null, plantedDay: 0, watered: false, fertilized: false,
+      quality: 50, ready: false, autoWaterDays: 0, yieldBoost: 0
     }))
     npcs.value = JSON.parse(JSON.stringify(initialNPCs))
     market.value = crops.map(c => ({
@@ -1177,6 +1429,7 @@ export const useGameStore = defineStore('game', () => {
     hostileActions.value = []
     activeSeasonalEvent.value = null
     showSeasonalDialog.value = false
+    shopState.value = { reputation: 0, totalSpent: 0, discountLevel: 0, dailyDeals: [], lastRefreshDay: 0 }
 
     player.value.inventory.push({
       itemId: 'wheat_seed', name: '小麦种子', type: 'seed', quantity: 5,
@@ -1212,6 +1465,7 @@ export const useGameStore = defineStore('game', () => {
     hostileActions: HostileAction[]
     completedSeasonalEvents: string[]
     processingState: ProcessingState
+    shopState: ShopState
   }
 
   function getSaveData(): SaveData {
@@ -1238,6 +1492,7 @@ export const useGameStore = defineStore('game', () => {
       hostileActions: JSON.parse(JSON.stringify(hostileActions.value)),
       completedSeasonalEvents: JSON.parse(JSON.stringify(completedSeasonalEvents.value)),
       processingState: JSON.parse(JSON.stringify(processingState.value)),
+      shopState: JSON.parse(JSON.stringify(shopState.value)),
     }
   }
 
@@ -1295,6 +1550,7 @@ export const useGameStore = defineStore('game', () => {
     activeSeasonalEvent.value = null
     showSeasonalDialog.value = false
     if (data.processingState) processingState.value = data.processingState
+    if (data.shopState) shopState.value = data.shopState
 
     addLog(`已从槽位 ${slot} 读取存档。`, 'system')
     return true
@@ -1335,12 +1591,14 @@ export const useGameStore = defineStore('game', () => {
     activeSeasonalEvent, showSeasonalDialog, completedSeasonalEvents,
     miniGameSession,
     processingState,
+    shopState,
     // computed
     currentStoryNode, seasonName, timeOfDayName, weatherName,
     npcsInVillage, plantedLands, activeChamberVote, activePriceWar,
     pendingCargoEvents,
     // actions
     advanceTime, plantCrop, harvestCrop, expandLand, sellItem, buySeed,
+    buyShopItem, useShopItem, getAvailableShopItems,
     talkToNPC, giveGift, goToNode, newGame, addLog, applyEffect,
     // save
     saveGame, loadGame, deleteSave, getAllSaves,

@@ -63,6 +63,8 @@ export interface FarmLand {
   fertilized: boolean
   quality: number       // 0-100，影响产量
   ready: boolean        // 是否可收获
+  autoWaterDays: number // 自动浇水剩余天数
+  yieldBoost: number    // 产量加成百分比（如50表示+50%）
 }
 
 export interface InventoryItem {
@@ -319,6 +321,8 @@ export interface GameState {
   hostileActions: HostileAction[]
   // 季节事件
   seasonalEvents: SeasonalEvent[]
+  // 商店
+  shopState: ShopState
 }
 
 export interface GameLogEntry {
@@ -388,4 +392,42 @@ export interface ProcessingState {
   slots: ProcessingSlot[]
   maxSlots: number
   unlockedRecipes: string[]   // 已解锁配方 id 列表
+}
+
+// ---- 商店系统 ----
+export type ShopItemCategory = '种子' | '肥料' | '工具' | '杂货'
+
+export interface ShopItem {
+  id: string
+  name: string
+  description: string
+  category: ShopItemCategory
+  basePrice: number           // 基础价格
+  icon: string
+  stock: number               // 当前库存（-1 = 无限）
+  maxStock: number            // 最大库存
+  unlockCondition?: string    // 解锁条件描述
+  effect?: ShopItemEffect     // 使用效果
+  seasonal?: Season           // 仅在某季节出现
+  isLimited?: boolean         // 是否为限时商品
+}
+
+export interface ShopItemEffect {
+  type: 'fertilize' | 'auto_water' | 'yield_boost' | 'stamina_restore' | 'instant_grow'
+  value: number
+  duration?: number           // 持续天数（用于自动浇水等）
+}
+
+export interface ShopDeal {
+  itemId: string
+  discount: number            // 折扣百分比 0-100
+  remainingDays: number       // 剩余天数
+}
+
+export interface ShopState {
+  reputation: number          // 商店声望 0-100
+  totalSpent: number          // 累计消费总额
+  discountLevel: number       // 折扣等级 0-5（每20声望一级，每级3%折扣）
+  dailyDeals: ShopDeal[]      // 每日特价
+  lastRefreshDay: number      // 上次刷新天数
 }

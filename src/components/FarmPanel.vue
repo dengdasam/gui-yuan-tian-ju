@@ -8,8 +8,14 @@ const store = useGameStore()
 const showPlant = ref(false)
 const showExpand = ref(false)
 const selectedLand = ref<number | null>(null)
+const showToolMenu = ref<number | null>(null)
 
 const maxLands = 6
+
+/** 背包中可对田使用的工具物品 */
+const toolItems = computed(() =>
+  store.player.inventory.filter(i => i.type === 'tool')
+)
 const expandCost = computed(() => {
   const currentCount = store.farmLands.length
   if (currentCount >= maxLands) return 0
@@ -114,6 +120,22 @@ function getLandProgress(land: typeof store.farmLands[0]) {
             收获
           </button>
           <div v-else class="growing-badge">生长中</div>
+          <!-- 工具使用入口 -->
+          <button
+            v-if="land.crop && toolItems.length > 0"
+            class="btn btn-tiny btn-tool"
+            @click="showToolMenu = showToolMenu === land.id ? null : land.id"
+          >🔧</button>
+        </div>
+
+        <!-- 工具菜单 -->
+        <div v-if="showToolMenu === land.id" class="tool-menu">
+          <div v-for="item in toolItems" :key="item.itemId" class="tool-menu-item"
+            @click="store.useShopItem(item.itemId, land.id); showToolMenu = null">
+            <span>{{ item.icon }} {{ item.name }} ×{{ item.quantity }}</span>
+            <span class="tool-use-label">使用 →</span>
+          </div>
+          <button class="btn btn-tiny" @click="showToolMenu = null" style="width:100%;margin-top:4px">关闭</button>
         </div>
       </div>
     </div>
@@ -188,6 +210,25 @@ function getLandProgress(land: typeof store.farmLands[0]) {
   border-color: var(--gold);
   color: var(--gold);
 }
+.btn-tool {
+  font-size: 14px; padding: 2px 6px;
+  background: #e0f2fe; border-color: #bae6fd; color: #0369a1;
+}
+.btn-tool:hover { background: #bae6fd; border-color: #7dd3fc; color: #0284c7; }
+
+/* 工具菜单 */
+.tool-menu {
+  margin-top: 4px; padding: 6px;
+  background: var(--bg-primary); border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+}
+.tool-menu-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 8px; font-size: 12px; cursor: pointer;
+  border-radius: 3px; transition: background 0.15s;
+}
+.tool-menu-item:hover { background: var(--bg-paper); color: var(--gold); }
+.tool-use-label { font-size: 10px; color: var(--text-muted); }
 
 /* 扩展卡片 */
 .expand-card {
