@@ -11,10 +11,11 @@ import StatusBar from '../components/StatusBar.vue'
 import SeasonalEventDialog from '../components/SeasonalEventDialog.vue'
 import SaveDialog from '../components/SaveDialog.vue'
 import MiniGamePanel from '../components/MiniGamePanel.vue'
+import ProcessingPanel from '../components/ProcessingPanel.vue'
 
 const store = useGameStore()
 const showSaveDialog = ref(false)
-const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory'>('farm')
+const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory' | 'processing'>('farm')
 </script>
 
 <template>
@@ -56,6 +57,11 @@ const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory'>('farm')
             :class="{ active: activeRightTab === 'inventory' }"
             @click="activeRightTab = 'inventory'"
           >🎒 背包</button>
+          <button
+            class="quick-tab"
+            :class="{ active: activeRightTab === 'processing' }"
+            @click="activeRightTab = 'processing'"
+          >⚒️ 加工</button>
         </div>
 
         <div class="panel-content">
@@ -63,6 +69,7 @@ const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory'>('farm')
           <MarketPanel v-if="activeRightTab === 'market'" />
           <NPCPanel v-if="activeRightTab === 'npc'" />
           <InventoryPanel v-if="activeRightTab === 'inventory'" />
+          <ProcessingPanel v-if="activeRightTab === 'processing'" />
         </div>
       </div>
     </div>

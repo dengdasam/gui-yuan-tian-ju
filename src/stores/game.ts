@@ -4,12 +4,13 @@ import type {
   GameState, Player, GameDate, FarmLand, NPC, MarketPrice,
   Competitor, TimeOfDay, Weather, Season, Crop, InventoryItem,
   ChamberVote, ChamberVoter, PriceWar, PriceWarParticipant,
-  CargoEvent, HostileAction, SeasonalEvent, MiniGameSession
+  CargoEvent, HostileAction, SeasonalEvent, MiniGameSession, ProcessingState
 } from '../types'
 import { storyNodes, chapters } from '../data/story'
 import { npcs as initialNPCs } from '../data/npcs'
 import { crops } from '../data/crops'
 import { competitors as initialCompetitors } from '../data/competitors'
+import { processingRecipes } from '../data/processing'
 import { seasonalEvents } from '../data/seasonal-events'
 import { getActiveSeasonalEvent } from '../data/seasonal-events'
 
@@ -90,6 +91,15 @@ export const useGameStore = defineStore('game', () => {
     gomoku: null,
   })
 
+  // 加工坊
+  const processingState = ref<ProcessingState>({
+    slots: [
+      { id: 0, status: 'idle', recipeId: null, startDay: 0, progress: 0 },
+    ],
+    maxSlots: 1,
+    unlockedRecipes: [],
+  })
+
   // ========== 计算属性 ==========
   const currentStoryNode = computed(() => storyNodes[currentNode.value] || null)
 
@@ -163,6 +173,10 @@ export const useGameStore = defineStore('game', () => {
 
     // 商战系统推进
     advanceBusinessWar()
+
+    // 加工坊推进
+    advanceProcessing()
+    checkRecipeUnlocks()
 
     // 季节事件检查
     checkSeasonalEvent()
@@ -967,6 +981,137 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  // ========== 加工坊 ==========
+  function advanceProcessing() {
+    processingState.value.slots.forEach(slot => {
+      if (slot.status !== 'processing' || !slot.recipeId) return
+      const recipe = processingRecipes.find(r => r.id === slot.recipeId)
+      if (!recipe) return
+      const elapsed = totalDays.value - slot.startDay
+      slot.progress = Math.min(100, Math.round((elapsed / recipe.processDays) * 100))
+      if (slot.progress >= 100) {
+        slot.status = 'done'
+        addLog(`【${recipe.outputName}】加工完成！`, 'action')
+      }
+    })
+  }
+
+  function startProcessing(slotId: number, recipeId: string): boolean {
+    const recipe = processingRecipes.find(r => r.id === recipeId)
+    if (!recipe) return false
+
+    // 检查原料
+    const invItem = player.value.inventory.find(i => i.itemId === recipe.inputItemId)
+    if (!invItem || invItem.quantity < recipe.inputQuantity) {
+      addLog(`原料不足，需要${recipe.inputQuantity}个${invItem?.name || recipe.inputItemId}。`, 'action')
+      return false
+    }
+
+    // 检查体力
+    if (player.value.stamina < recipe.staminaCost) {
+      addLog(`体力不足，需要${recipe.staminaCost}点体力。`, 'action')
+      return false
+    }
+
+    // 检查槽位
+    const slot = processingState.value.slots.find(s => s.id === slotId)
+    if (!slot || slot.status !== 'idle') return false
+
+    // 扣原料
+    invItem.quantity -= recipe.inputQuantity
+    if (invItem.quantity <= 0) {
+      player.value.inventory = player.value.inventory.filter(i => i.itemId !== recipe.inputItemId)
+    }
+
+    // 扣体力
+    player.value.stamina -= recipe.staminaCost
+
+    // 启动加工
+    slot.status = 'processing'
+    slot.recipeId = recipeId
+    slot.startDay = totalDays.value
+    slot.progress = 0
+
+    addLog(`开始加工【${recipe.name}】，预计${recipe.processDays}天后完成。`, 'action')
+    return true
+  }
+
+  function claimProcessed(slotId: number): boolean {
+    const slot = processingState.value.slots.find(s => s.id === slotId)
+    if (!slot || slot.status !== 'done' || !slot.recipeId) return false
+
+    const recipe = processingRecipes.find(r => r.id === slot.recipeId)
+    if (!recipe) return false
+
+    // 添加成品到背包
+    const existing = player.value.inventory.find(i => i.itemId === recipe!.outputItemId)
+    if (existing) {
+      existing.quantity += recipe!.outputQuantity
+    } else {
+      player.value.inventory.push({
+        itemId: recipe!.outputItemId,
+        name: recipe!.outputName,
+        type: 'processed',
+        quantity: recipe!.outputQuantity,
+        description: recipe!.description,
+        icon: recipe!.outputIcon,
+      })
+    }
+
+    // 重置槽位
+    slot.status = 'idle'
+    slot.recipeId = null
+    slot.startDay = 0
+    slot.progress = 0
+
+    addLog(`领取了【${recipe!.outputName}】×${recipe!.outputQuantity}！`, 'action')
+    return true
+  }
+
+  function upgradeProcessingSlot(): boolean {
+    const MAX_SLOTS = 3
+    const costs = [0, 200, 500] // 第2/3个槽位的价格
+    const currentCount = processingState.value.maxSlots
+    if (currentCount >= MAX_SLOTS) return false
+
+    const cost = costs[currentCount]
+    if (player.value.gold < cost) {
+      addLog(`铜钱不足，升级加工槽位需要${cost}文。`, 'action')
+      return false
+    }
+
+    player.value.gold -= cost
+    const newId = processingState.value.slots.length
+    processingState.value.slots.push({
+      id: newId,
+      status: 'idle',
+      recipeId: null,
+      startDay: 0,
+      progress: 0,
+    })
+    processingState.value.maxSlots += 1
+    addLog(`加工槽位已升级至${processingState.value.maxSlots}个！花费${cost}文铜钱。`, 'action')
+    return true
+  }
+
+  function checkRecipeUnlocks() {
+    processingRecipes.forEach(recipe => {
+      if (processingState.value.unlockedRecipes.includes(recipe.id)) return
+      if (player.value.farmLevel < recipe.minFarmLevel) return
+      if (recipe.unlockCondition) {
+        const match = recipe.unlockCondition.match(/(.+)好感\s*[≥>=]\s*(\d+)/)
+        if (match) {
+          const npcName = match[1]
+          const threshold = parseInt(match[2])
+          const npc = npcs.value.find(n => n.name === npcName)
+          if (!npc || npc.affection < threshold) return
+        }
+      }
+      processingState.value.unlockedRecipes.push(recipe.id)
+      addLog(`解锁了新的加工配方：【${recipe.name}】！`, 'system')
+    })
+  }
+
   function getNPCName(id: string): string {
     return npcs.value.find(n => n.id === id)?.name || id
   }
@@ -1012,6 +1157,19 @@ export const useGameStore = defineStore('game', () => {
     market.value = crops.map(c => ({
       cropId: c.id, price: c.baseSellPrice, trend: 'stable' as const, demand: 'normal' as const
     }))
+    // 加工品市场价
+    const processedMarketEntries = [
+      { id: 'flour', base: 38 }, { id: 'polished_rice', base: 49 },
+      { id: 'pickled_cabbage', base: 27 }, { id: 'refined_tea', base: 200 },
+      { id: 'tea_brick', base: 240 }, { id: 'ginseng_slices', base: 400 },
+      { id: 'herbal_ointment', base: 44 }, { id: 'cotton_cloth', base: 48 },
+      { id: 'grape_wine', base: 270 }, { id: 'raisins', base: 68 },
+    ]
+    processedMarketEntries.forEach(p => {
+      market.value.push({
+        cropId: p.id, price: p.base, trend: 'stable' as const, demand: 'normal' as const
+      })
+    })
     competitors.value = JSON.parse(JSON.stringify(initialCompetitors))
     chamberVotes.value = []
     priceWar.value = null
@@ -1053,6 +1211,7 @@ export const useGameStore = defineStore('game', () => {
     cargoEvents: CargoEvent[]
     hostileActions: HostileAction[]
     completedSeasonalEvents: string[]
+    processingState: ProcessingState
   }
 
   function getSaveData(): SaveData {
@@ -1077,7 +1236,8 @@ export const useGameStore = defineStore('game', () => {
       priceWar: priceWar.value ? JSON.parse(JSON.stringify(priceWar.value)) : null,
       cargoEvents: JSON.parse(JSON.stringify(cargoEvents.value)),
       hostileActions: JSON.parse(JSON.stringify(hostileActions.value)),
-      completedSeasonalEvents: JSON.parse(JSON.stringify(completedSeasonalEvents.value))
+      completedSeasonalEvents: JSON.parse(JSON.stringify(completedSeasonalEvents.value)),
+      processingState: JSON.parse(JSON.stringify(processingState.value)),
     }
   }
 
@@ -1134,6 +1294,7 @@ export const useGameStore = defineStore('game', () => {
     completedSeasonalEvents.value = data.completedSeasonalEvents
     activeSeasonalEvent.value = null
     showSeasonalDialog.value = false
+    if (data.processingState) processingState.value = data.processingState
 
     addLog(`已从槽位 ${slot} 读取存档。`, 'system')
     return true
@@ -1173,6 +1334,7 @@ export const useGameStore = defineStore('game', () => {
     chamberVotes, priceWar, cargoEvents, hostileActions,
     activeSeasonalEvent, showSeasonalDialog, completedSeasonalEvents,
     miniGameSession,
+    processingState,
     // computed
     currentStoryNode, seasonName, timeOfDayName, weatherName,
     npcsInVillage, plantedLands, activeChamberVote, activePriceWar,
@@ -1191,5 +1353,7 @@ export const useGameStore = defineStore('game', () => {
     checkSeasonalEvent, completeSeasonalEvent, skipSeasonalEvent,
     // mini-game
     challengeNPC, endMiniGame,
+    // processing
+    startProcessing, claimProcessed, upgradeProcessingSlot,
   }
 })

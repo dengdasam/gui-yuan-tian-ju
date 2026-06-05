@@ -68,7 +68,7 @@ export interface FarmLand {
 export interface InventoryItem {
   itemId: string
   name: string
-  type: 'seed' | 'crop' | 'tool' | 'gift' | 'special'
+  type: 'seed' | 'crop' | 'tool' | 'gift' | 'special' | 'processed'
   quantity: number
   description: string
   icon: string
@@ -354,4 +354,38 @@ export interface MiniGameSession {
   gameType: MiniGameType
   opponentNpcId: string | null
   gomoku: GomokuState | null
+}
+
+// ---- 加工坊系统 ----
+export type ProcessingStatus = 'idle' | 'processing' | 'done'
+
+export interface ProcessingRecipe {
+  id: string
+  name: string
+  description: string
+  inputItemId: string        // 原料 itemId (crop id)
+  inputQuantity: number       // 每次消耗原料数
+  outputItemId: string        // 成品 itemId
+  outputName: string
+  outputQuantity: number
+  outputIcon: string
+  processDays: number         // 加工耗时（游戏天数）
+  staminaCost: number         // 启动消耗体力
+  valueMultiplier: number     // 价值倍率（基于原料 baseSellPrice）
+  unlockCondition?: string    // 解锁条件描述
+  minFarmLevel: number        // 最低田地等级
+}
+
+export interface ProcessingSlot {
+  id: number
+  status: ProcessingStatus
+  recipeId: string | null     // 当前加工的配方
+  startDay: number            // 开始加工的天数
+  progress: number            // 0-100 进度百分比
+}
+
+export interface ProcessingState {
+  slots: ProcessingSlot[]
+  maxSlots: number
+  unlockedRecipes: string[]   // 已解锁配方 id 列表
 }
