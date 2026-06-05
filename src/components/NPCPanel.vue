@@ -8,6 +8,18 @@ const npcDialogue = ref('')
 const showQuest = ref(false)
 const showGiftPicker = ref(false)
 
+function canChallenge(npcId: string): boolean {
+  // 只有特定 NPC 可以对弈（老陈、马刀头、李明）
+  return ['laochen', 'madaotou', 'liming'].includes(npcId) && store.npcs.find(n => n.id === npcId)?.met
+}
+
+function challenge(npcId: string) {
+  store.challengeNPC(npcId, 'gomoku')
+  selectedNPC.value = null
+  npcDialogue.value = ''
+  showGiftPicker.value = false
+}
+
 function talk(npcId: string) {
   selectedNPC.value = npcId
   npcDialogue.value = store.talkToNPC(npcId)
@@ -91,14 +103,22 @@ function isPreferred(itemId: string, npcId: string): boolean {
               <span class="relation-label" :style="{ color: getRelationColor(npc.affection) }">
                 {{ getRelationLabel(npc.affection) }} {{ npc.affection }}
               </span>
-              <button
-                v-if="npc.sideQuests.length > 0"
-                class="quest-indicator"
-                @click.stop="toggleQuest(npc.id)"
-                :title="npc.sideQuests.find(q => q.stage > 0) ? '支线进行中' : '查看支线'"
-              >
-                {{ npc.sideQuests.some(q => q.stage > 0) ? '📖' : '🕮' }}
-              </button>
+              <div class="npc-meta-actions">
+                <button
+                  v-if="npc.sideQuests.length > 0"
+                  class="quest-indicator"
+                  @click.stop="toggleQuest(npc.id)"
+                  :title="npc.sideQuests.find(q => q.stage > 0) ? '支线进行中' : '查看支线'"
+                >
+                  {{ npc.sideQuests.some(q => q.stage > 0) ? '📖' : '🕮' }}
+                </button>
+                <button
+                  v-if="canChallenge(npc.id)"
+                  class="challenge-inline-btn"
+                  @click.stop="challenge(npc.id)"
+                  title="对弈五子棋"
+                >♟️</button>
+              </div>
             </div>
           </div>
         </div>
@@ -140,10 +160,17 @@ function isPreferred(itemId: string, npcId: string): boolean {
       <span class="dialogue-avatar">{{ store.npcs.find(n => n.id === selectedNPC)?.icon }}</span>
       <span class="dialogue-text">{{ npcDialogue }}</span>
       <div v-if="store.npcs.find(n => n.id === selectedNPC)?.met" class="gift-area">
-        <button
-          class="btn btn-small gift-toggle"
-          @click="openGiftPicker"
-        >送礼 🎁</button>
+        <div class="npc-action-buttons">
+          <button
+            class="btn btn-small gift-toggle"
+            @click="openGiftPicker"
+          >送礼 🎁</button>
+          <button
+            v-if="canChallenge(selectedNPC!)"
+            class="btn btn-small challenge-btn"
+            @click="challenge(selectedNPC!)"
+          >对弈 ♟️</button>
+        </div>
 
         <!-- 礼物选择器 -->
         <div v-if="showGiftPicker" class="gift-picker">
@@ -203,11 +230,30 @@ function isPreferred(itemId: string, npcId: string): boolean {
 .npc-meta { display: flex; align-items: center; justify-content: space-between; }
 .relation-label { font-size: 11px; }
 
+.npc-meta-actions { display: flex; align-items: center; gap: 4px; }
+
 .quest-indicator {
   background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 4px;
   border-radius: 4px; transition: background 0.2s;
 }
 .quest-indicator:hover { background: var(--border-light); }
+
+.challenge-inline-btn {
+  background: linear-gradient(135deg, #fdf8e8, #f5ead0);
+  border: 1px solid var(--gold-light);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.challenge-inline-btn:hover {
+  background: linear-gradient(135deg, #fff, #f5ead0);
+  border-color: var(--gold);
+  box-shadow: 0 2px 4px rgba(200, 164, 92, 0.2);
+  transform: scale(1.1);
+}
 
 /* 支线详情 */
 .quest-detail {
@@ -255,8 +301,25 @@ function isPreferred(itemId: string, npcId: string): boolean {
   margin-top: 8px;
 }
 
+.npc-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .gift-toggle {
-  width: 100%;
+  flex: 1;
+}
+
+.challenge-btn {
+  flex: 1;
+  background: linear-gradient(to bottom, #fdf8e8, #f5ead0);
+  border-color: var(--gold-light);
+  color: var(--ink);
+}
+.challenge-btn:hover {
+  background: linear-gradient(to bottom, #fff, #f5ead0);
+  border-color: var(--gold);
+  box-shadow: 0 2px 6px rgba(200, 164, 92, 0.2);
 }
 
 .gift-picker {

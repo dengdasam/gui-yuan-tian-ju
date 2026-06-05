@@ -327,3 +327,31 @@ export interface GameLogEntry {
   type: 'action' | 'story' | 'system' | 'market' | 'business' | 'festival'
   message: string
 }
+
+// ---- 小游戏系统 ----
+export type MiniGameType = 'gomoku' | null
+export type GomokuStone = 0 | 1 | 2  // 0=空, 1=黑(玩家), 2=白(AI)
+export type GomokuStatus = 'playing' | 'player_win' | 'ai_win' | 'draw'
+
+export interface GomokuMove {
+  row: number
+  col: number
+  stone: GomokuStone
+}
+
+export interface GomokuState {
+  board: GomokuStone[][]     // 15×15
+  currentPlayer: 1 | 2       // 1=玩家(先手), 2=AI(后手)
+  status: GomokuStatus
+  moveHistory: GomokuMove[]
+  playerScore: number
+  aiScore: number
+  lastMove: { row: number; col: number } | null
+}
+
+export interface MiniGameSession {
+  active: boolean
+  gameType: MiniGameType
+  opponentNpcId: string | null
+  gomoku: GomokuState | null
+}

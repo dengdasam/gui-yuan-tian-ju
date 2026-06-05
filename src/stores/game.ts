@@ -4,7 +4,7 @@ import type {
   GameState, Player, GameDate, FarmLand, NPC, MarketPrice,
   Competitor, TimeOfDay, Weather, Season, Crop, InventoryItem,
   ChamberVote, ChamberVoter, PriceWar, PriceWarParticipant,
-  CargoEvent, HostileAction, SeasonalEvent
+  CargoEvent, HostileAction, SeasonalEvent, MiniGameSession
 } from '../types'
 import { storyNodes, chapters } from '../data/story'
 import { npcs as initialNPCs } from '../data/npcs'
@@ -81,6 +81,14 @@ export const useGameStore = defineStore('game', () => {
   const hostileActions = ref<HostileAction[]>([])
   const activeSeasonalEvent = ref<SeasonalEvent | null>(null)
   const showSeasonalDialog = ref(false)
+
+  // 小游戏
+  const miniGameSession = ref<MiniGameSession>({
+    active: false,
+    gameType: null,
+    opponentNpcId: null,
+    gomoku: null,
+  })
 
   // ========== 计算属性 ==========
   const currentStoryNode = computed(() => storyNodes[currentNode.value] || null)
@@ -939,6 +947,30 @@ export const useGameStore = defineStore('game', () => {
     showSeasonalDialog.value = false
   }
 
+  // ========== 小游戏 ==========
+  function challengeNPC(npcId: string, gameType: 'gomoku') {
+    miniGameSession.value = {
+      active: true,
+      gameType,
+      opponentNpcId: npcId,
+      gomoku: null,
+    }
+    addLog(`向${getNPCName(npcId)}发起对弈邀请。`, 'action')
+  }
+
+  function endMiniGame() {
+    miniGameSession.value = {
+      active: false,
+      gameType: null,
+      opponentNpcId: null,
+      gomoku: null,
+    }
+  }
+
+  function getNPCName(id: string): string {
+    return npcs.value.find(n => n.id === id)?.name || id
+  }
+
   // ---- 日志 ----
   function addLog(msg: string, type: string = 'action') {
     log.value.unshift({
@@ -1140,6 +1172,7 @@ export const useGameStore = defineStore('game', () => {
     farmLands, npcs, market, competitors,
     chamberVotes, priceWar, cargoEvents, hostileActions,
     activeSeasonalEvent, showSeasonalDialog, completedSeasonalEvents,
+    miniGameSession,
     // computed
     currentStoryNode, seasonName, timeOfDayName, weatherName,
     npcsInVillage, plantedLands, activeChamberVote, activePriceWar,
@@ -1155,6 +1188,8 @@ export const useGameStore = defineStore('game', () => {
     triggerCargoIntercept, resolveCargoIntercept,
     advanceBusinessWar,
     // seasonal
-    checkSeasonalEvent, completeSeasonalEvent, skipSeasonalEvent
+    checkSeasonalEvent, completeSeasonalEvent, skipSeasonalEvent,
+    // mini-game
+    challengeNPC, endMiniGame,
   }
 })

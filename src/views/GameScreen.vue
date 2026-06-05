@@ -10,6 +10,7 @@ import InventoryPanel from '../components/InventoryPanel.vue'
 import StatusBar from '../components/StatusBar.vue'
 import SeasonalEventDialog from '../components/SeasonalEventDialog.vue'
 import SaveDialog from '../components/SaveDialog.vue'
+import MiniGamePanel from '../components/MiniGamePanel.vue'
 
 const store = useGameStore()
 const showSaveDialog = ref(false)
@@ -70,6 +71,8 @@ const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory'>('farm')
     <SeasonalEventDialog />
     <!-- 存档弹窗 -->
     <SaveDialog :show="showSaveDialog" @close="showSaveDialog = false" />
+    <!-- 小游戏弹窗 -->
+    <MiniGamePanel :show="store.miniGameSession.active" @close="store.endMiniGame()" />
   </div>
 </template>
 
