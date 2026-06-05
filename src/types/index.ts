@@ -239,6 +239,11 @@ export interface NPCSideQuest {
   stages: NPCSideQuestStage[]
   completed: boolean
   reward: string
+  // 扩展条件
+  requireItem?: string     // 需要背包中的物品 ID
+  requireGold?: number     // 需要的铜钱数
+  requireFame?: number     // 需要的声望值
+  requireDay?: number      // 需要在第 N 天后触发
 }
 
 export interface NPCSideQuestStage {
@@ -256,6 +261,49 @@ export interface NPCEvent {
   condition: (state: any) => boolean
   dialogue: DialogueLine[]
   choices: Choice[]
+}
+
+// ---- 任务日志系统 ----
+export type QuestCategory = 'main' | 'side' | 'daily' | 'epic'
+
+export interface QuestJournalEntry {
+  questId: string
+  title: string
+  description: string
+  category: QuestCategory
+  npcId?: string           // 相关 NPC（支线）
+  stage: number            // 当前阶段
+  maxStage: number
+  progress: string         // 人类可读进度描述，如 "好感度 35/50"
+  progressPercent: number  // 0-100
+  completed: boolean
+  reward: string
+  stages: { stage: number; title: string; done: boolean }[]
+  acceptedDay: number
+}
+
+export interface DailyQuest {
+  id: string
+  title: string
+  description: string
+  flavorText: string       // 风味文字
+  type: 'harvest' | 'deliver' | 'talk' | 'spend' | 'craft'
+  targetId: string         // 目标（作物 ID / NPC ID / 物品 ID）
+  targetQuantity: number
+  currentProgress: number
+  completed: boolean
+  claimed: boolean
+  reward: { type: string; value: number }
+  rewardGold: number
+  season?: Season          // 限定季节
+}
+
+export interface QuestNotification {
+  type: 'quest_started' | 'quest_progress' | 'quest_completed' | 'quest_available'
+  questTitle: string
+  npcName?: string
+  message: string
+  day: number
 }
 
 // ---- 故事引擎 ----
@@ -323,6 +371,10 @@ export interface GameState {
   seasonalEvents: SeasonalEvent[]
   // 商店
   shopState: ShopState
+  // 任务日志
+  questJournal: QuestJournalEntry[]
+  dailyQuests: DailyQuest[]
+  questNotifications: QuestNotification[]
 }
 
 export interface GameLogEntry {

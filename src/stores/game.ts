@@ -5,7 +5,8 @@ import type {
   Competitor, TimeOfDay, Weather, Season, Crop, InventoryItem,
   ChamberVote, ChamberVoter, PriceWar, PriceWarParticipant,
   CargoEvent, HostileAction, SeasonalEvent, MiniGameSession,
-  ProcessingState, ShopState, ShopItemEffect
+  ProcessingState, ShopState, ShopItemEffect,
+  QuestJournalEntry, DailyQuest, QuestNotification
 } from '../types'
 import { storyNodes, chapters } from '../data/story'
 import { npcs as initialNPCs } from '../data/npcs'
@@ -15,6 +16,11 @@ import { processingRecipes } from '../data/processing'
 import { seasonalEvents } from '../data/seasonal-events'
 import { getActiveSeasonalEvent } from '../data/seasonal-events'
 import { shopItems as allShopItems, getSeasonalShopItems, getLimitedShopItems, isItemUnlocked } from '../data/shop'
+import { generateDailyQuests } from '../data/daily-quests'
+import {
+  EPIC_QUEST_TEMPLATE, EPIC_QUEST_STAGES,
+  getEpicStageDialogue, getEpicStageEffects, getEpicStageRequirement
+} from '../data/epic-quest'
 
 export const useGameStore = defineStore('game', () => {
   // ========== 状态 ==========
@@ -111,6 +117,13 @@ export const useGameStore = defineStore('game', () => {
     lastRefreshDay: 0,
   })
 
+  // 任务系统
+  const questJournal = ref<QuestJournalEntry[]>([])
+  const dailyQuests = ref<DailyQuest[]>([])
+  const questNotifications = ref<QuestNotification[]>([])
+  const epicQuestTalkedNPCs = ref<string[]>([]) // 史诗任务阶段跟踪
+  const epicQuestChamberVoteDone = ref(false)
+
   // ========== 计算属性 ==========
   const currentStoryNode = computed(() => storyNodes[currentNode.value] || null)
 
@@ -202,6 +215,20 @@ export const useGameStore = defineStore('game', () => {
 
     // 商店每日刷新
     refreshShop()
+
+    // 任务系统每日维护
+    // 每日刷新：如果所有任务都已被领取，生成新任务
+    const allClaimed = dailyQuests.value.length > 0 && dailyQuests.value.every(q => q.claimed)
+    if (dailyQuests.value.length === 0 || allClaimed) {
+      dailyQuests.value = generateDailyQuests()
+    }
+    checkDailyQuestProgress()
+    initEpicQuest()
+    // 史诗任务阶段4：盛典开幕（在阶段3完成后次日自动触发）
+    const epic = questJournal.value.find(e => e.questId === 'epic_taoyuan_festival' && !e.completed)
+    if (epic && epic.stage === 4) {
+      advanceEpicQuest()
+    }
 
     // 章节过渡触发
     checkPendingChapterStart()
@@ -311,6 +338,14 @@ export const useGameStore = defineStore('game', () => {
     // 检查是否触发运货事件
     checkShipmentTrigger(crop.id, crop.yield)
 
+    // 每日任务追踪：收获类
+    dailyQuests.value.forEach(dq => {
+      if (!dq.completed && !dq.claimed && dq.type === 'harvest' && dq.targetId === crop.id) {
+        dq.currentProgress += 1
+      }
+    })
+    checkDailyQuestProgress()
+
     return true
   }
 
@@ -355,6 +390,15 @@ export const useGameStore = defineStore('game', () => {
     addLog(`出售了【${item.name}】×${quantity}，获得 ${total} 文铜钱。`, 'action')
 
     player.value.inventory = player.value.inventory.filter(i => i.quantity > 0)
+
+    // 每日任务追踪：交付类
+    dailyQuests.value.forEach(dq => {
+      if (!dq.completed && !dq.claimed && dq.type === 'deliver' && dq.targetId === itemId) {
+        dq.currentProgress += quantity
+      }
+    })
+    checkDailyQuestProgress()
+
     return true
   }
 
@@ -463,6 +507,15 @@ export const useGameStore = defineStore('game', () => {
 
     addLog(`购买了【${item.name}】×${quantity}，花费 ${totalCost} 文。`, 'action')
     updateShopReputation(totalCost)
+
+    // 每日任务：消费类
+    dailyQuests.value.forEach(dq => {
+      if (!dq.completed && !dq.claimed && dq.type === 'spend') {
+        dq.currentProgress += totalCost
+      }
+    })
+    checkDailyQuestProgress()
+
     return true
   }
 
@@ -609,7 +662,262 @@ export const useGameStore = defineStore('game', () => {
     )
   }
 
-  // ---- NPC 交互 ----
+  // ---- 任务系统 ----
+
+  /** 初始化每日任务 */
+  function initDailyQuests() {
+    dailyQuests.value = generateDailyQuests()
+  }
+
+  /** 每日任务进度检查 */
+  function checkDailyQuestProgress() {
+    dailyQuests.value.forEach(dq => {
+      if (dq.completed || dq.claimed) return
+
+      switch (dq.type) {
+        case 'harvest': {
+          const totalHarvested = dq.currentProgress // 由 harvestCrop 更新
+          if (totalHarvested >= dq.targetQuantity) {
+            dq.completed = true
+            addLog(`每日任务【${dq.title}】已完成！领取奖励。`, 'story')
+            addQuestNotification('quest_completed', dq.title, dq.flavorText)
+          }
+          break
+        }
+        case 'talk': {
+          // 由 talkToNPC 更新
+          if (dq.currentProgress >= dq.targetQuantity) {
+            dq.completed = true
+            addLog(`每日任务【${dq.title}】已完成！领取奖励。`, 'story')
+            addQuestNotification('quest_completed', dq.title, dq.flavorText)
+          }
+          break
+        }
+        case 'deliver': {
+          // 由 sellItem 更新
+          if (dq.currentProgress >= dq.targetQuantity) {
+            dq.completed = true
+            addLog(`每日任务【${dq.title}】已完成！领取奖励。`, 'story')
+            addQuestNotification('quest_completed', dq.title, dq.flavorText)
+          }
+          break
+        }
+        case 'spend': {
+          if (dq.currentProgress >= dq.targetQuantity) {
+            dq.completed = true
+            addLog(`每日任务【${dq.title}】已完成！领取奖励。`, 'story')
+            addQuestNotification('quest_completed', dq.title, dq.flavorText)
+          }
+          break
+        }
+        case 'craft': {
+          if (dq.currentProgress >= dq.targetQuantity) {
+            dq.completed = true
+            addLog(`每日任务【${dq.title}】已完成！领取奖励。`, 'story')
+            addQuestNotification('quest_completed', dq.title, dq.flavorText)
+          }
+          break
+        }
+      }
+    })
+  }
+
+  /** 认领每日任务奖励 */
+  function claimDailyQuest(questId: string) {
+    const dq = dailyQuests.value.find(q => q.id === questId)
+    if (!dq || !dq.completed || dq.claimed) return false
+
+    player.value.gold += dq.rewardGold
+    dq.claimed = true
+    addLog(`领取每日任务奖励：${dq.rewardGold}文`, 'action')
+
+    // 额外奖励
+    if (dq.reward.type === 'affection' && dq.type === 'talk' && dq.targetId) {
+      const npc = npcs.value.find(n => n.id === dq.targetId)
+      if (npc) {
+        npc.affection = Math.min(100, npc.affection + dq.reward.value)
+      }
+    }
+    return true
+  }
+
+  /** 完成任务并计入日志 */
+  function completeQuestJournal(questId: string) {
+    const entry = questJournal.value.find(e => e.questId === questId)
+    if (!entry || entry.completed) return
+
+    entry.completed = true
+    entry.progress = '已完成'
+    entry.progressPercent = 100
+    entry.stages.forEach(s => s.done = true)
+    addQuestNotification('quest_completed', entry.title, entry.reward)
+  }
+
+  /** 推进史诗任务阶段 */
+  function advanceEpicQuest() {
+    const epic = questJournal.value.find(e => e.questId === 'epic_taoyuan_festival')
+    if (!epic || epic.completed) return
+
+    const req = getEpicStageRequirement(epic.stage + 1)
+
+    let canAdvance = false
+
+    if (epic.stage === 0) {
+      // 触发条件：章节≥2、老陈好感≥50、云娘好感≥40
+      const laochen = npcs.value.find(n => n.id === 'laochen')
+      const yunniang = npcs.value.find(n => n.id === 'yunniang')
+      const chapterIdx = chapters.findIndex(c => c.id === currentChapter.value)
+      if (laochen && yunniang && chapterIdx >= 1 &&
+          laochen.affection >= 50 && yunniang.affection >= 40) {
+        canAdvance = true
+      }
+    } else if (epic.stage === 1) {
+      // 与老陈、云娘、李明都交谈过
+      const required = req.npcTalks || []
+      canAdvance = required.every((id: string) => epicQuestTalkedNPCs.value.includes(id))
+    } else if (epic.stage === 2) {
+      // 物资充足
+      const itemsReq = req.items || {}
+      const hasItems = Object.entries(itemsReq).every(([itemId, qty]) => {
+        const item = player.value.inventory.find(i => i.itemId === itemId)
+        return item && item.quantity >= (qty as number)
+      })
+      const hasGold = player.value.gold >= (req.gold || 0)
+      if (hasItems && hasGold) {
+        // 消耗物资
+        Object.entries(itemsReq).forEach(([itemId, qty]) => {
+          const item = player.value.inventory.find(i => i.itemId === itemId)
+          if (item) item.quantity -= (qty as number)
+        })
+        player.value.gold -= (req.gold || 0)
+        player.value.inventory = player.value.inventory.filter(i => i.quantity > 0)
+        canAdvance = true
+      }
+    } else if (epic.stage === 3) {
+      // 与马刀头交谈 + 商会投票
+      canAdvance = epicQuestTalkedNPCs.value.includes('madaotou') && epicQuestChamberVoteDone.value
+    } else if (epic.stage >= 4) {
+      canAdvance = true
+    }
+
+    if (canAdvance) {
+      epic.stage += 1
+      const s = EPIC_QUEST_STAGES.find(s => s.stage === epic.stage)
+      if (s) {
+        epic.progress = s.title
+        epic.progressPercent = Math.floor(epic.stage / epic.maxStage * 100)
+        const stageInJournal = epic.stages.find(ss => ss.stage === epic.stage)
+        if (stageInJournal) stageInJournal.done = true
+
+        // 注入对话
+        const dialogue = getEpicStageDialogue(epic.stage)
+        dialogue.forEach(d => {
+          dialogueHistory.value.push({
+            speaker: d.speaker || '你',
+            content: d.content
+          })
+        })
+        addLog(`【${epic.title}】第${epic.stage}阶段：${s.title}`, 'story')
+
+        // 应用效果
+        const effects = getEpicStageEffects(epic.stage)
+        effects.forEach((e: any) => applyEffect(e))
+
+        if (epic.stage >= epic.maxStage) {
+          completeQuestJournal('epic_taoyuan_festival')
+        }
+
+        addQuestNotification(
+          epic.stage >= epic.maxStage ? 'quest_completed' : 'quest_progress',
+          epic.title,
+          s.title
+        )
+        epicQuestTalkedNPCs.value = []
+        epicQuestChamberVoteDone.value = false
+      }
+    }
+  }
+
+  /** 初始史诗任务 */
+  function initEpicQuest() {
+    if (questJournal.value.find(e => e.questId === 'epic_taoyuan_festival')) return
+    const laochen = npcs.value.find(n => n.id === 'laochen')
+    const yunniang = npcs.value.find(n => n.id === 'yunniang')
+    const chapterIdx = chapters.findIndex(c => c.id === currentChapter.value)
+    if (laochen && yunniang && chapterIdx >= 1 &&
+        laochen.affection >= 50 && yunniang.affection >= 40) {
+      questJournal.value.push({
+        ...EPIC_QUEST_TEMPLATE,
+        acceptedDay: totalDays.value,
+      })
+      addLog('【史诗任务】「桃源盛典」已触发！老陈想举办桃源村第一届春茶市集。', 'story')
+      addQuestNotification('quest_started', EPIC_QUEST_TEMPLATE.title, EPIC_QUEST_TEMPLATE.description)
+    }
+  }
+
+  /** 更新支线任务的日志条目 */
+  function syncSideQuestToJournal(npcId: string) {
+    const npc = npcs.value.find(n => n.id === npcId)
+    if (!npc) return
+    npc.sideQuests.forEach(sq => {
+      if (sq.stage <= 0) return
+      let entry = questJournal.value.find(e => e.questId === sq.id)
+      if (!entry) {
+        entry = {
+          questId: sq.id,
+          title: sq.title,
+          description: sq.description,
+          category: 'side',
+          npcId: npc.id,
+          stage: sq.stage,
+          maxStage: sq.maxStage,
+          progress: `${sq.stages[sq.stage - 1]?.title || '进行中'}`,
+          progressPercent: Math.floor(sq.stage / sq.maxStage * 100),
+          completed: sq.completed,
+          reward: sq.reward,
+          stages: sq.stages.map(s => ({ stage: s.stage, title: s.title, done: s.stage <= sq.stage })),
+          acceptedDay: totalDays.value,
+        }
+        questJournal.value.push(entry)
+      } else {
+        entry.stage = sq.stage
+        entry.progress = `${sq.stages[sq.stage - 1]?.title || '进行中'}`
+        entry.progressPercent = Math.floor(sq.stage / sq.maxStage * 100)
+        entry.completed = sq.completed
+        entry.stages.forEach(s => s.done = s.stage <= sq.stage)
+      }
+    })
+  }
+
+  /** 任务通知 */
+  function addQuestNotification(type: QuestNotification['type'], title: string, message: string, npcName?: string) {
+    questNotifications.value.push({
+      type, questTitle: title, npcName, message, day: totalDays.value
+    })
+    // 最多保留 30 条
+    if (questNotifications.value.length > 30) {
+      questNotifications.value = questNotifications.value.slice(-30)
+    }
+  }
+
+  /** 清除已读通知 */
+  function clearQuestNotification(index: number) {
+    questNotifications.value.splice(index, 1)
+  }
+
+  /** 史诗任务 NPC 交谈追踪 */
+  function trackEpicTalk(npcId: string) {
+    if (!epicQuestTalkedNPCs.value.includes(npcId)) {
+      epicQuestTalkedNPCs.value.push(npcId)
+    }
+    advanceEpicQuest()
+  }
+
+  /** 记录商会投票完成 */
+  function trackEpicVote() {
+    epicQuestChamberVoteDone.value = true
+    advanceEpicQuest()
+  }
   function talkToNPC(npcId: string): string {
     const npc = npcs.value.find(n => n.id === npcId)
     if (!npc) return ''
@@ -621,6 +929,18 @@ export const useGameStore = defineStore('game', () => {
 
     // 检查支线触发
     checkSideQuestTrigger(npc)
+    // 同步支线到日志
+    syncSideQuestToJournal(npcId)
+    // 史诗任务追踪
+    trackEpicTalk(npcId)
+
+    // 每日任务：交谈类
+    dailyQuests.value.forEach(dq => {
+      if (!dq.completed && !dq.claimed && dq.type === 'talk' && dq.targetId === npcId) {
+        dq.currentProgress += 1
+      }
+    })
+    checkDailyQuestProgress()
 
     const dialogues = npc.dailyDialogues
     const d = dialogues[Math.floor(Math.random() * dialogues.length)]
@@ -658,7 +978,17 @@ export const useGameStore = defineStore('game', () => {
       const currentStage = sq.stages.find(s => s.stage === sq.stage + 1)
       if (!currentStage) return
       const threshold = sq.affectionThreshold[sq.stage] || 999
-      if (npc.affection >= threshold && sq.stage < sq.maxStage) {
+
+      // 检查扩展条件
+      let extendedOK = true
+      if (sq.requireItem) {
+        extendedOK = player.value.inventory.some(i => i.itemId === sq.requireItem)
+      }
+      if (sq.requireGold && player.value.gold < sq.requireGold) extendedOK = false
+      if (sq.requireFame && player.value.fame < sq.requireFame) extendedOK = false
+      if (sq.requireDay && totalDays.value < sq.requireDay) extendedOK = false
+
+      if (npc.affection >= threshold && sq.stage < sq.maxStage && extendedOK) {
         // 触发支线！
         sq.stage += 1
         const stage = sq.stages.find(s => s.stage === sq.stage)
@@ -892,6 +1222,8 @@ export const useGameStore = defineStore('game', () => {
     if (!cv || cv.status !== 'voting') return
 
     resolveChamberVoteInternal(cv)
+    // 史诗任务：商会投票追踪
+    trackEpicVote()
   }
 
   function resolveChamberVoteInternal(cv: ChamberVote) {
@@ -1284,6 +1616,15 @@ export const useGameStore = defineStore('game', () => {
     slot.progress = 0
 
     addLog(`开始加工【${recipe.name}】，预计${recipe.processDays}天后完成。`, 'action')
+
+    // 每日任务：加工类
+    dailyQuests.value.forEach(dq => {
+      if (!dq.completed && !dq.claimed && dq.type === 'craft') {
+        dq.currentProgress += 1
+      }
+    })
+    checkDailyQuestProgress()
+
     return true
   }
 
@@ -1430,6 +1771,12 @@ export const useGameStore = defineStore('game', () => {
     activeSeasonalEvent.value = null
     showSeasonalDialog.value = false
     shopState.value = { reputation: 0, totalSpent: 0, discountLevel: 0, dailyDeals: [], lastRefreshDay: 0 }
+    questJournal.value = []
+    dailyQuests.value = []
+    questNotifications.value = []
+    epicQuestTalkedNPCs.value = []
+    epicQuestChamberVoteDone.value = false
+    initDailyQuests()
 
     player.value.inventory.push({
       itemId: 'wheat_seed', name: '小麦种子', type: 'seed', quantity: 5,
@@ -1466,6 +1813,8 @@ export const useGameStore = defineStore('game', () => {
     completedSeasonalEvents: string[]
     processingState: ProcessingState
     shopState: ShopState
+    questJournal: QuestJournalEntry[]
+    dailyQuests: DailyQuest[]
   }
 
   function getSaveData(): SaveData {
@@ -1493,6 +1842,8 @@ export const useGameStore = defineStore('game', () => {
       completedSeasonalEvents: JSON.parse(JSON.stringify(completedSeasonalEvents.value)),
       processingState: JSON.parse(JSON.stringify(processingState.value)),
       shopState: JSON.parse(JSON.stringify(shopState.value)),
+      questJournal: JSON.parse(JSON.stringify(questJournal.value)),
+      dailyQuests: JSON.parse(JSON.stringify(dailyQuests.value)),
     }
   }
 
@@ -1551,6 +1902,8 @@ export const useGameStore = defineStore('game', () => {
     showSeasonalDialog.value = false
     if (data.processingState) processingState.value = data.processingState
     if (data.shopState) shopState.value = data.shopState
+    if (data.questJournal) questJournal.value = data.questJournal
+    if (data.dailyQuests) dailyQuests.value = data.dailyQuests
 
     addLog(`已从槽位 ${slot} 读取存档。`, 'system')
     return true
@@ -1592,6 +1945,9 @@ export const useGameStore = defineStore('game', () => {
     miniGameSession,
     processingState,
     shopState,
+    questJournal,
+    dailyQuests,
+    questNotifications,
     // computed
     currentStoryNode, seasonName, timeOfDayName, weatherName,
     npcsInVillage, plantedLands, activeChamberVote, activePriceWar,
@@ -1600,6 +1956,8 @@ export const useGameStore = defineStore('game', () => {
     advanceTime, plantCrop, harvestCrop, expandLand, sellItem, buySeed,
     buyShopItem, useShopItem, getAvailableShopItems,
     talkToNPC, giveGift, goToNode, newGame, addLog, applyEffect,
+    // quests
+    claimDailyQuest, advanceEpicQuest, clearQuestNotification,
     // save
     saveGame, loadGame, deleteSave, getAllSaves,
     // business

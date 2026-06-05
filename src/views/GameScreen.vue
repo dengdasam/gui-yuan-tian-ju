@@ -12,10 +12,11 @@ import SeasonalEventDialog from '../components/SeasonalEventDialog.vue'
 import SaveDialog from '../components/SaveDialog.vue'
 import MiniGamePanel from '../components/MiniGamePanel.vue'
 import ProcessingPanel from '../components/ProcessingPanel.vue'
+import QuestJournal from '../components/QuestJournal.vue'
 
 const store = useGameStore()
 const showSaveDialog = ref(false)
-const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory' | 'processing'>('farm')
+const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory' | 'processing' | 'quest'>('farm')
 </script>
 
 <template>
@@ -62,6 +63,16 @@ const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory' | 'processing
             :class="{ active: activeRightTab === 'processing' }"
             @click="activeRightTab = 'processing'"
           >⚒️ 加工</button>
+          <button
+            class="quick-tab quest-tab"
+            :class="{ active: activeRightTab === 'quest' }"
+            @click="activeRightTab = 'quest'"
+          >
+            📋 任务
+            <span v-if="store.questNotifications.length > 0" class="quest-badge">
+              {{ store.questNotifications.length }}
+            </span>
+          </button>
         </div>
 
         <div class="panel-content">
@@ -70,6 +81,7 @@ const activeRightTab = ref<'farm' | 'market' | 'npc' | 'inventory' | 'processing
           <NPCPanel v-if="activeRightTab === 'npc'" />
           <InventoryPanel v-if="activeRightTab === 'inventory'" />
           <ProcessingPanel v-if="activeRightTab === 'processing'" />
+          <QuestJournal v-if="activeRightTab === 'quest'" />
         </div>
       </div>
     </div>
